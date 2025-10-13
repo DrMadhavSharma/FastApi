@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Annotated
 from fastapi import Depends, HTTPException, Query
 from sqlmodel import Field, Session, SQLModel, create_engine, select 
-from config import pwd_context
+from .config import pwd_context
 # Database credentials
 user = "postgres.dokiquodoqrslfrfofxk"
 password = "Quizdb2754"
@@ -18,7 +18,6 @@ db_url = f"postgresql://{user}:{password}@{host}:{port}/{dbname}?sslmode=require
 # Synchronous engine
 engine = create_engine(
     db_url,
-    echo=True,
     connect_args={"sslmode": "require"}  # needed for Supabase
 )
 
