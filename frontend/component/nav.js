@@ -1,26 +1,52 @@
-import React from 'react'
+"use client";
+import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 const Nav = () => {
-  return (
-      <div className="nav">
-          <div className="container nav-inner">
-            <div className="brand">
-              <span className="brand-badge" />
-              <span>Hospital App</span>
-            </div>
-            <div>
-              <span className="btn"><a href="\login">Login</a></span>
-            </div>
-            {/* <div className="nav-links">
-              <a className="nav-link" href="/">Home</a>
-              <a className="nav-link" href="/login">Login</a>
-              <a className="nav-link" href="/register">Register</a>
-              <a className="nav-link" href="/admin">Admin</a>
-              <a className="nav-link" href="/doctor">Doctor</a>
-              <a className="nav-link" href="/patient">Patient</a> */}
-            </div>
-          </div>
-  )
-}
+  const router = useRouter();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-export default Nav
+  // Check login status on load
+  useEffect(() => {
+    const token = localStorage.getItem("access_token");
+    setIsLoggedIn(!!token);
+  }, []);
+
+  // Handle logout
+  const handleLogout = () => {
+    localStorage.removeItem("access_token");
+    setIsLoggedIn(false);
+    router.push("/login");
+  };
+
+  return (
+    <div className="nav">
+      <div className="container nav-inner">
+        {/* Brand */}
+        <div className="brand">
+          <span className="brand-badge" />
+          <span>Hospital App</span>
+        </div>
+
+        {/* Right side: login/logout button */}
+        <div>
+          {isLoggedIn ? (
+            <button
+              onClick={handleLogout}
+              className="btn btn-primary"
+              style={{ cursor: "pointer" }}
+            >
+              Logout
+            </button>
+          ) : (
+            <a href="/login" className="btn btn-primary">
+              Login
+            </a>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Nav;

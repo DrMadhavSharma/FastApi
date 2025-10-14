@@ -9,6 +9,8 @@ from .models import *
 from .pydantic_models import *
 from .config import create_access_token , verify_token , get_current_user
 from sqlalchemy import func
+import json
+from dateutil import parser
 
 def require_admin(user):
     if "admin" not in user.get("roles", []):
@@ -329,69 +331,77 @@ def get_appointments(current_user: dict = Depends(get_current_user), db: Session
 
 
 #BOOK APPOINTMENT
-import json
-from fastapi import Body
+
+def parse_to_utc(dt_str: str):
+    """
+    Parse an ISO datetime string to a timezone-aware UTC datetime,
+    normalizing microseconds to 0 for consistent DB comparisons.
+    """
+    dt = parser.isoparse(dt_str)
+    # convert naive datetimes to UTC (treat naive as UTC),
+    # and convert any timezone-aware to UTC.
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    else:
+        dt = dt.astimezone(timezone.utc)
+    return dt.replace(microsecond=0)
 
 @app.post("/appointments/book")
 def book_appointment(
     payload: AppointmentBook,
     db: Session = Depends(get_session),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
 ):
+    """
+    Book an appointment at the requested time.
+    Behavior:
+      - Does NOT require the requested slot to be present in doctor's availability.
+      - Will reject only if there is already an appointment for the doctor at the same datetime.
+    """
+    # Extract payload
     doctor_id = payload.doctor_id
-    appointment_date = payload.appointment_date
-    notes = payload.notes
-    
-        
+    appointment_date_str = payload.appointment_date
+    notes = payload.notes or ""
 
-    # Step 1: Verify user (must be a patient)
+    # Validate user
     db_user = db.query(User).filter(User.email == current_user["email"]).first()
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
     if db_user.role != RoleEnum.patient:
         raise HTTPException(status_code=403, detail="Only patients can book appointments")
-    print("Current user:", db_user.username)
-    print("Patient profile:", db_user.patient_profile)
-    print("Booking payload:", doctor_id, appointment_date, notes)
-
-    # Step 2: Get the patient profile
     patient = db_user.patient_profile
     if not patient:
         raise HTTPException(status_code=400, detail="No patient profile found")
 
-    # Step 3: Verify doctor exists
+    # Validate doctor
     doctor = db.query(Doctor).filter(Doctor.id == doctor_id).first()
     if not doctor:
         raise HTTPException(status_code=404, detail="Doctor not found")
 
-    # Step 4: Check doctor's availability
-    if doctor.availability:
-        try:
-            available_slots = json.loads(doctor.availability)  # list of ISO datetime strings
-        except json.JSONDecodeError:
-            raise HTTPException(status_code=500, detail="Doctor availability data invalid")
-        if appointment_date.isoformat() not in available_slots:
-            raise HTTPException(status_code=400, detail="Doctor is not available at this time")
-    else:
-        raise HTTPException(status_code=400, detail="Doctor has no availability set")
+    # Parse requested datetime to UTC
+    try:
+        requested_slot = parse_to_utc(appointment_date_str)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid appointment date format: {e}")
 
-    # Step 5: Check for existing appointment at that time
+    # --- IMPORTANT: DO NOT block if slot not in doctor.availability ---
+    # Instead we only check conflicts (double booking)
     conflict = db.query(Appointment).filter(
         Appointment.doctor_id == doctor.id,
-        Appointment.appointment_date == appointment_date
+        Appointment.appointment_date == requested_slot
     ).first()
     if conflict:
         raise HTTPException(status_code=400, detail="Doctor already has an appointment at this time")
-
-    # Step 6: Create appointment
+    if requested_slot < datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="Cannot book appointment in the past")
+    # Create appointment
     new_appt = Appointment(
         doctor_id=doctor.id,
         patient_id=patient.id,
-        appointment_date=appointment_date,
+        appointment_date=requested_slot,
         status=AppointmentStatusEnum.scheduled,
         notes=notes
     )
-
     db.add(new_appt)
     db.commit()
     db.refresh(new_appt)
@@ -402,10 +412,52 @@ def book_appointment(
             "id": new_appt.id,
             "doctor_id": new_appt.doctor_id,
             "patient_id": new_appt.patient_id,
-            "appointment_date": new_appt.appointment_date,
+            "appointment_date": new_appt.appointment_date.isoformat(),
             "status": new_appt.status.value,
-        }
+            "notes": new_appt.notes,
+        },
     }
+#patient cancels appointements
+@app.patch("/appointments/cancel/{appointment_id}")
+def cancel_appointment(
+    appointment_id: int,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_session)
+):
+    """
+    Cancel an appointment if it belongs to the current patient.
+    """
+    # Validate user
+    db_user = db.query(User).filter(User.email == current_user["email"]).first()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if db_user.role != RoleEnum.patient:
+        raise HTTPException(status_code=403, detail="Only patients can book appointments")
+    patient = db_user.patient_profile
+    if not patient:
+        raise HTTPException(status_code=400, detail="No patient profile found")
+
+    # Fetch appointment
+    appointment = db.query(Appointment).filter(
+        Appointment.id == appointment_id,
+        Appointment.patient_id == patient.id
+    ).first()
+
+    if not appointment:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+
+    if appointment.status == AppointmentStatusEnum.cancelled:
+        raise HTTPException(status_code=400, detail="Appointment already cancelled")
+
+    if appointment.appointment_date < datetime.utcnow():
+        raise HTTPException(status_code=400, detail="Cannot cancel past appointments")
+
+    # Cancel appointment
+    appointment.status = AppointmentStatusEnum.cancelled
+    db.commit()
+    db.refresh(appointment)
+
+    return {"message": "Appointment cancelled successfully", "appointment_id": appointment.id}
 #patient search doctors
 @app.get("/doctors/search")
 def search_doctors(q: str = "", db: Session = Depends(get_session)):
@@ -453,3 +505,25 @@ def list_doctors(db: Session = Depends(get_session)):
         })
 
     return result
+@app.put("/patient/update")
+def patient_update(payload: PatientUpdate, user=Depends(get_current_user), db: Session = Depends(get_session)):
+    """
+    Update a patient .
+    """
+    # Validate user
+    db_user = db.query(User).filter(User.email == user["email"]).first()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if db_user.role != RoleEnum.patient:
+        raise HTTPException(status_code=403, detail="Only patients can update ")
+    patient = db_user.patient_profile
+    if not patient:
+        raise HTTPException(status_code=400, detail="No patient profile found")
+    if payload.username is not None: db_user.username = payload.username
+    if payload.email is not None: db_user.email = payload.email
+    if payload.password is not None: db_user.password = hash_password(payload.password)
+    if payload.age is not None: patient.age = payload.age
+    if payload.address is not None: patient.address = payload.address
+    if payload.medical_history is not None: patient.medical_history = payload.medical_history
+    db.add_all([db_user, patient]); db.commit()
+    return {"status": "updated"}

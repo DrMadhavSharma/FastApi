@@ -187,8 +187,8 @@ class RoleEnum(enum.Enum):
 class AppointmentStatusEnum(enum.Enum):
     scheduled = "scheduled"
     completed = "completed"
-    canceled = "canceled"
-
+    cancelled = "cancelled"
+    passed="passed"
 # ------------------------
 # General User Table
 # ------------------------

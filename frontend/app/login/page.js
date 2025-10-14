@@ -26,11 +26,12 @@ export default function LoginPage() {
       if (typeof window !== "undefined") {
         localStorage.setItem("access_token", data.access_token);
         localStorage.setItem("role", data.role);
+        
       }
       // Simple redirect based on role
       const role = data.role;
       if (role === "doctor") {
-        window.location.href = "/dashboard/doctor";
+        window.location.href = "/doctor";
       } else if (role === "patient") {
         window.location.href = "/patient/dashboard";
       } else if (role === "admin") {
@@ -56,7 +57,7 @@ export default function LoginPage() {
           </div>
           <div className="wire-field">
             <label className="wire-label" htmlFor="password">Password</label>
-            <input className="wire-input" id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="********" minLength={5} />
+            <input className="wire-input" id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="********" />
           </div>
           {error ? <p className="error">{error}</p> : null}
           <div className="wire-actions">
