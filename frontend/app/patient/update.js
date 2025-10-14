@@ -2,10 +2,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../lib/api";
 
-export default function PatientDashboard() {
-  const [specializations, setSpecializations] = useState([]);
-  const [doctors, setDoctors] = useState([]);
-  const [appointments, setAppointments] = useState([]);
+export default function PatientUpdate() {
+  // const [specializations, setSpecializations] = useState([]);
+  // const [doctors, setDoctors] = useState([]);
+  // const [appointments, setAppointments] = useState([]);
   const [profile, setProfile] = useState({ username: "", email: "", age: "", address: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -14,15 +14,13 @@ export default function PatientDashboard() {
     setLoading(true);
     setError("");
     try {
-      const [specs, docs, appts, prof] = await Promise.all([
-        apiFetch("/patient/specializations"),
-        apiFetch("/patient/doctors"),
-        apiFetch("/patient/appointments"),
-        apiFetch("/patient/profile"),
-      ]);
-      setSpecializations(specs || []);
-      setDoctors(docs || []);
-      setAppointments(appts || []);
+      // const [specs, docs, appts, prof] = await Promise.all([
+      //   // apiFetch("/patient/appointments"),
+      //   // apiFetch("/patient/profile"),
+      // ]);
+      // setSpecializations(specs || []);
+      // setDoctors(docs || []);
+      // setAppointments(appts || []);
       setProfile({
         username: prof?.username || "",
         email: prof?.email || "",
@@ -34,41 +32,46 @@ export default function PatientDashboard() {
   }
   useEffect(() => { load(); }, []);
 
-  const upcoming = useMemo(() => {
-    const now = new Date();
-    return appointments.filter(a => new Date(a.appointment_date) >= now);
-  }, [appointments]);
-  const past = useMemo(() => {
-    const now = new Date();
-    return appointments.filter(a => new Date(a.appointment_date) < now);
-  }, [appointments]);
+  // const upcoming = useMemo(() => {
+  //   const now = new Date();
+  //   return appointments.filter(a => new Date(a.appointment_date) >= now);
+  // }, [appointments]);
+  // const past = useMemo(() => {
+  //   const now = new Date();
+  //   return appointments.filter(a => new Date(a.appointment_date) < now);
+  // }, [appointments]);
 
   async function saveProfile() {
     try { await apiFetch("/patient/profile", { method: "PUT", body: JSON.stringify(profile) }); }
     catch (e) { setError(e.message); }
   }
-  async function book(doctorId, date) {
-    try { await apiFetch("/patient/appointments", { method: "POST", body: JSON.stringify({ doctor_id: doctorId, appointment_date: date }) }); await load(); }
-    catch (e) { setError(e.message); }
-  }
-  async function cancel(appointmentId) {
-    try { await apiFetch(`/patient/appointments/${appointmentId}`, { method: "DELETE" }); await load(); }
-    catch (e) { setError(e.message); }
-  }
+  // async function book(doctorId, date) {
+  //   try { await apiFetch("/appointments", { method: "POST", body: JSON.stringify({ doctor_id: doctorId, appointment_date: date }) }); await load(); }
+  //   catch (e) { setError(e.message); }
+  // }
+  if (loading) {
+    return (
+      <div className="grid-center">
+        <div className="spinner"></div>
+        <p style={{ marginTop: "12px", color: "var(--muted)" }}></p>
+      </div>
+    );
+  }  
+  // if (error) return <p className="text-center text-red-600 mt-10">{error}</p>;
 
   return (
     <div className="container" style={{ paddingTop: 20 }}>
-      <h1>Patient Dashboard</h1>
+      <h1>UPDATE</h1>
       {error ? <p className="error">{error}</p> : null}
-
+{/* 
       <div className="section">
         <h2>Departments</h2>
         <ul>
           {specializations.map((s, idx) => <li key={idx}>{s}</li>)}
         </ul>
-      </div>
+      </div> */}
 
-      <div className="section" style={{ marginTop: 12 }}>
+      {/* <div className="section" style={{ marginTop: 12 }}>
         <h2>Doctors & Availability</h2>
         <ul>
           {doctors.map(d => (
@@ -85,21 +88,9 @@ export default function PatientDashboard() {
             </li>
           ))}
         </ul>
-      </div>
+      </div> */}
 
-      <div className="section" style={{ marginTop: 12 }}>
-        <h2>Upcoming Appointments</h2>
-        <ul>
-          {upcoming.map(a => (
-            <li key={a.id}>
-              {new Date(a.appointment_date).toLocaleString()} • with Dr.{a.doctor_id} • {a.status}
-              <button className="btn" style={{ marginLeft: 8 }} onClick={() => cancel(a.id)}>cancel</button>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      <div className="section" style={{ marginTop: 12 }}>
+      {/* <div className="section" style={{ marginTop: 12 }}>
         <h2>Past History</h2>
         <ul>
           {past.map(h => (
@@ -108,7 +99,7 @@ export default function PatientDashboard() {
             </li>
           ))}
         </ul>
-      </div>
+      </div> */}
 
       <div className="section" style={{ marginTop: 12 }}>
         <h2>Edit Profile</h2>

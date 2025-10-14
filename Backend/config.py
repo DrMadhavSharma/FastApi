@@ -18,23 +18,32 @@ def verify_password(plain_password, hashed_password):
 # JWT Token creation and verification
 def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
+
 def verify_token(token: str):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        roles: list = payload.get("roles", [])
+        username = payload.get("sub")
+        email = payload.get("email")
+        roles = payload.get("roles", [])
         if username is None:
             return None
-        return {"username": username, "roles": roles}
+        return {"username": username, "email": email, "roles": roles}
     except JWTError:
         return None
+
 def get_current_user(token: str = Depends(oauth2_scheme)):
-    user = verify_token(token)
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
-    return user
+    try:
+        print("Incoming token:", token)  # 🕵️ check what’s actually sent
+        user = verify_token(token)
+        print("Decoded user:", user)
+        if not user:
+            raise HTTPException(status_code=401, detail="Invalid or expired token")
+        return user
+    except Exception as e:
+        print("Token verification error:", e)
+        raise HTTPException(status_code=401, detail="Token verification failed")

@@ -13,11 +13,12 @@ port = 5432
 dbname = "postgres"
 
 # Sync DB URL (remove asyncpg)
-db_url = f"postgresql://{user}:{password}@{host}:{port}/{dbname}?sslmode=require"
+db_url = f"postgresql://{user}:{password}@{host}:{port}/{dbname}?sslmode=prefer"
 
 # Synchronous engine
 engine = create_engine(
     db_url,
+    pool_pre_ping=True,
     connect_args={"sslmode": "require"}  # needed for Supabase
 )
 

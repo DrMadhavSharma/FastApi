@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, ConfigDict
-
+from datetime import datetime, timezone
 class UserBase(BaseModel):
     username: str
     email: EmailStr
@@ -60,3 +60,8 @@ class PatientCombined(BaseModel):
     user:UserOut
     patient:PatientCR
     model_config = ConfigDict(from_attributes=True)  # this allows conversion from ORM objects
+
+class AppointmentBook(BaseModel):
+    doctor_id: int
+    appointment_date: str
+    notes: str | None = None

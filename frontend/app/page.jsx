@@ -1,9 +1,8 @@
 "use client";
-
 import { useEffect, useState } from "react";
 
 export default function HomePage() {
-  const [data, setData] = useState(null);
+  const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -21,7 +20,7 @@ export default function HomePage() {
         }
 
         const result = await res.json();
-        setData(result);
+        setMessage(result.message || "No message received");
       } catch (err) {
         setError(err.message || "Something went wrong");
       } finally {
@@ -32,21 +31,22 @@ export default function HomePage() {
     fetchData();
   }, []);
 
-  if (loading) return <p className="text-center mt-10">Loading...</p>;
-  if (error) return <p className="text-center text-red-600 mt-10">{error}</p>;
+if (loading) {
+    return (
+      <div className="grid-center">
+        <div className="spinner"></div>
+        <p style={{ marginTop: "12px", color: "var(--muted)" }}></p>
+      </div>
+    );
+  }  if (error) return <p className="text-center text-red-600 mt-10">{error}</p>;
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <div className="bg-white p-10 rounded-2xl shadow-lg text-center">
-        <h1 className="text-3xl font-bold mb-4 text-gray-800">🏠 HOME PAGE</h1>
-        {data ? (
-          <pre className="text-gray-600 text-sm text-left overflow-x-auto">
-            {JSON.stringify(data, null, 2)}
-          </pre>
-        ) : (
-          <p className="text-gray-500">No data received.</p>
-        )}
+    <main className="grid-center">
+      <div className="card" style={{ textAlign: "center" }}>
+        <h1>Home Page 🏠</h1>
+        <p>{message}</p>
+        
       </div>
-    </div>
+    </main>
   );
 }

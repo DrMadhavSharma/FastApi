@@ -49,9 +49,8 @@ def login_page(user: Login, db: Session = Depends(get_session)):
     # Generate JWT token with role info
     access_token_expires = timedelta(minutes=30)
     access_token = create_access_token(
-        data={"sub": db_user.email, "roles": [db_user.role.value]},
-        expires_delta=access_token_expires
-    )
+    data={"sub": db_user.username, "email": db_user.email, "roles": [db_user.role.value]}
+    ,expires_delta=access_token_expires)
 
     return {
         "access_token": access_token,
@@ -292,8 +291,165 @@ def doctor_dashboard(user=Depends(get_current_user)):
         raise HTTPException(status_code=403, detail="Not authorized")
     return {"msg": f"Hello Doctor {user['username']}"}
 
-@app.get("/dashboard/patient")
+@app.post("/dashboard/patient")
 def patient_dashboard(user=Depends(get_current_user)):
     if "patient" not in user["roles"]:
         raise HTTPException(status_code=403, detail="Not authorized")
     return {"msg": f"Hello Patient {user['username']}"}
+
+@app.get("/appointments")
+def get_appointments(current_user: dict = Depends(get_current_user), db: Session = Depends(get_session)):
+    db_user = db.query(User).filter(User.email == current_user["email"]).first()
+
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if db_user.role == RoleEnum.patient:
+        patient = db_user.patient_profile
+        appointments = db.query(Appointment).filter(Appointment.patient_id == patient.id).all()
+    elif db_user.role == RoleEnum.doctor:
+        doctor = db_user.doctor_profile
+        appointments = db.query(Appointment).filter(Appointment.doctor_id == doctor.id).all()
+    else:
+        appointments = db.query(Appointment).all()  # for admin
+
+    # Return a **list of dictionaries** so frontend can map
+    result = []
+    for a in appointments:
+        result.append({
+            "id": a.id,
+            "doctor_id": a.doctor_id,
+            "doctor_name": a.doctor.user.username,  # add this
+            "patient_id": a.patient_id,
+            "appointment_date": a.appointment_date.isoformat(),
+            "status": a.status.value,
+            "notes": a.notes
+        })
+    return result
+
+
+#BOOK APPOINTMENT
+import json
+from fastapi import Body
+
+@app.post("/appointments/book")
+def book_appointment(
+    payload: AppointmentBook,
+    db: Session = Depends(get_session),
+    current_user: dict = Depends(get_current_user)
+):
+    doctor_id = payload.doctor_id
+    appointment_date = payload.appointment_date
+    notes = payload.notes
+    
+        
+
+    # Step 1: Verify user (must be a patient)
+    db_user = db.query(User).filter(User.email == current_user["email"]).first()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if db_user.role != RoleEnum.patient:
+        raise HTTPException(status_code=403, detail="Only patients can book appointments")
+    print("Current user:", db_user.username)
+    print("Patient profile:", db_user.patient_profile)
+    print("Booking payload:", doctor_id, appointment_date, notes)
+
+    # Step 2: Get the patient profile
+    patient = db_user.patient_profile
+    if not patient:
+        raise HTTPException(status_code=400, detail="No patient profile found")
+
+    # Step 3: Verify doctor exists
+    doctor = db.query(Doctor).filter(Doctor.id == doctor_id).first()
+    if not doctor:
+        raise HTTPException(status_code=404, detail="Doctor not found")
+
+    # Step 4: Check doctor's availability
+    if doctor.availability:
+        try:
+            available_slots = json.loads(doctor.availability)  # list of ISO datetime strings
+        except json.JSONDecodeError:
+            raise HTTPException(status_code=500, detail="Doctor availability data invalid")
+        if appointment_date.isoformat() not in available_slots:
+            raise HTTPException(status_code=400, detail="Doctor is not available at this time")
+    else:
+        raise HTTPException(status_code=400, detail="Doctor has no availability set")
+
+    # Step 5: Check for existing appointment at that time
+    conflict = db.query(Appointment).filter(
+        Appointment.doctor_id == doctor.id,
+        Appointment.appointment_date == appointment_date
+    ).first()
+    if conflict:
+        raise HTTPException(status_code=400, detail="Doctor already has an appointment at this time")
+
+    # Step 6: Create appointment
+    new_appt = Appointment(
+        doctor_id=doctor.id,
+        patient_id=patient.id,
+        appointment_date=appointment_date,
+        status=AppointmentStatusEnum.scheduled,
+        notes=notes
+    )
+
+    db.add(new_appt)
+    db.commit()
+    db.refresh(new_appt)
+
+    return {
+        "message": "Appointment booked successfully",
+        "appointment": {
+            "id": new_appt.id,
+            "doctor_id": new_appt.doctor_id,
+            "patient_id": new_appt.patient_id,
+            "appointment_date": new_appt.appointment_date,
+            "status": new_appt.status.value,
+        }
+    }
+#patient search doctors
+@app.get("/doctors/search")
+def search_doctors(q: str = "", db: Session = Depends(get_session)):
+    """
+    Search doctors by specialization or username
+    """
+    doctors = db.query(Doctor).join(User).filter(
+        (Doctor.specialization.ilike(f"%{q}%")) |
+        (User.username.ilike(f"%{q}%"))
+    ).all()
+
+    result = []
+    for d in doctors:
+        result.append({
+            "id": d.id,
+            "username": d.user.username,
+            "email": d.user.email,
+            "specialization": d.specialization,
+            "bio": d.bio,
+            "availability": d.availability
+        })
+
+    return result
+
+#list of doctors 
+@app.get("/doctors")
+def list_doctors(db: Session = Depends(get_session)):
+    """
+    List all doctors with their profiles (specialization, bio, availability)
+    """
+    doctors = db.query(Doctor).all()
+    result = []
+
+    for d in doctors:
+        # skip doctor if no associated user
+        if not d.user:
+            continue
+        result.append({
+            "id": d.id,
+            "username": d.user.username,
+            "email": d.user.email,
+            "specialization": d.specialization,
+            "bio": d.bio,
+            "availability": json.loads(d.availability) if d.availability else []
+        })
+
+    return result
