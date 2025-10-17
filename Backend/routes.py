@@ -715,16 +715,16 @@ def update_availability(
     return {"message": "Availability updated successfully", "availability": days}
 
 
-from .main import app
+from main import app
 from typing import Annotated
 from datetime import datetime, timedelta
 from fastapi import Depends, HTTPException
 from sqlmodel import Session, select
 from sqlalchemy import func
 
-from .models import *
-from .pydantic_models import *
-from .config import create_access_token, verify_token, get_current_user, hash_password
+from models import *
+from pydantic_models import *
+from config import create_access_token, verify_token, get_current_user, hash_password
 from pydantic import BaseModel, EmailStr
 
 
