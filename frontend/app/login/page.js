@@ -13,7 +13,7 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch("https://fastapi-6mjn.onrender.com/login", {
+      const res = await fetch("/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password })
@@ -31,11 +31,11 @@ export default function LoginPage() {
       // Simple redirect based on role
       const role = data.role;
       if (role === "doctor") {
-        window.location.href = "https://fastapi-6mjn.onrender.com/doctor";
+        window.location.href = "/doctor";
       } else if (role === "patient") {
-        window.location.href = "/https://fastapi-6mjn.onrender.com/patient/dashboard";
+        window.location.href = "/patient/dashboard";
       } else if (role === "admin") {
-        window.location.href = "https://fastapi-6mjn.onrender.com/admin";
+        window.location.href = "/admin";
       } else {
         window.location.href = "/";
       }
