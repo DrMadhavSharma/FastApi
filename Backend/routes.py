@@ -733,7 +733,7 @@ def authenticate_user(db: Session, email: str, password: str):
     db_user = db.execute(stmt).scalar_one_or_none()
     if not db_user:
         return None
-    from .config import verify_password as _verify
+    from config import verify_password as _verify
     if not _verify(password, db_user.password):
         return None
     return db_user
