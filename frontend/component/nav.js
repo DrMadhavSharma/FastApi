@@ -39,7 +39,7 @@ const Nav = () => {
               Logout
             </button>
           ) : (
-            <a href="https://fastapi-6mjn.onrender.com/login" className="btn btn-primary">
+            <a href="https://fastapi-frontend-h1vg.onrender.com/login" className="btn btn-primary">
               Login
             </a>
           )}
