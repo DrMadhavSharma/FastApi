@@ -2,11 +2,11 @@ from typing import Annotated
 
 from fastapi import Depends, FastAPI
 from fastapi.security import OAuth2PasswordBearer
-from .models import *
+from models import *
 app = FastAPI()
-from .routes import *
+from routes import *
 from fastapi.middleware.cors import CORSMiddleware
-from .config import hash_password
+from config import hash_password
 
 from fastapi.middleware.cors import CORSMiddleware
 

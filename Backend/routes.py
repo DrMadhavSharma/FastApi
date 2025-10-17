@@ -2,12 +2,12 @@ from .main import app
 from typing import Annotated
 from datetime import datetime, timedelta, timezone
 from starlette.responses import RedirectResponse
-from .config import hash_password,verify_password
+from config import hash_password,verify_password
 from fastapi import Depends, HTTPException
 from sqlmodel import  Session, select 
-from .models import * 
-from .pydantic_models import *
-from .config import create_access_token , verify_token , get_current_user
+from models import * 
+from pydantic_models import *
+from config import create_access_token , verify_token , get_current_user
 from sqlalchemy import func
 import json
 from dateutil import parser
