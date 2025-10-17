@@ -47,7 +47,7 @@ def on_startup():
     # Ensure admin exists
     with Session(engine) as db:
         from sqlalchemy import select
-        from .models import User, RoleEnum
+        from models import User, RoleEnum
         existing = db.execute(select(User).where(User.role == RoleEnum.admin)).scalar_one_or_none()
         if not existing:
             admin_user = User(
