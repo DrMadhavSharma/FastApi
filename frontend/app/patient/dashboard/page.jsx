@@ -175,8 +175,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_BASE;
       </div>
     );
   }
-const apptDate = new Date(appt.appointment_date);
-const isFuture = apptDate.getTime() > now.getTime();
+
 
   return (
     <div className="main container">
@@ -289,7 +288,10 @@ const isFuture = apptDate.getTime() > now.getTime();
                   appt.status === "confirmed" ? "var(--success)" :
                   appt.status === "cancelled" ? "var(--danger)" :
                   appt.status === "pending" ? "var(--warning)" : "var(--muted)";
-
+                  // ✅ define logic variables outside JSX
+                  const apptDate = new Date(appt.appointment_date);
+                  const now = new Date();
+                  const isFuture = apptDate.getTime() > now.getTime();
                 return (
                   <tr key={appt.id}>
                     <td style={{ padding: "8px" }}>{doctor?.username || "Unknown"}</td>
