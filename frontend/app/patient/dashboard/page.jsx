@@ -252,12 +252,12 @@ const API_URL = process.env.NEXT_PUBLIC_API_BASE;
           <h2>🧑‍💼 Update Profile</h2>
           <form onSubmit={handleProfileSubmit} style={{ marginTop: "12px" }}>
             <div className="grid" style={{ display: "grid", gap: "10px" }}>
-              <input type="text" name="username" className="input" placeholder="Username" value={profile.username} onChange={handleProfileChange} />
-              <input type="email" name="email" className="input" placeholder="Email" value={profile.email} onChange={handleProfileChange} />
-              <input type="password" name="password" className="input" placeholder="New Password" value={profile.password} onChange={handleProfileChange} />
-              <input type="number" name="age" className="input" placeholder="Age" value={profile.age} onChange={handleProfileChange} />
-              <input type="text" name="address" className="input" placeholder="Address" value={profile.address} onChange={handleProfileChange} />
-              <textarea name="medical_history" className="textarea" placeholder="Medical history" value={profile.medical_history} onChange={handleProfileChange} />
+              <input type="text" name="username" className="input" required placeholder="Username" value={profile.username} onChange={handleProfileChange} />
+              <input type="email" name="email" className="input" required placeholder="Email" value={profile.email} onChange={handleProfileChange} />
+              <input type="password" name="password" className="input" required placeholder="New Password" value={profile.password} onChange={handleProfileChange} />
+              <input type="number" name="age" className="input" required placeholder="Age" value={profile.age} onChange={handleProfileChange} />
+              <input type="text" name="address" className="input" required placeholder="Address" value={profile.address} onChange={handleProfileChange} />
+              <textarea name="medical_history" className="textarea" required placeholder="Medical history" value={profile.medical_history} onChange={handleProfileChange} />
             </div>
             <div className="actions" style={{ marginTop: "16px" }}>
               <button type="submit" className="btn btn-primary">Update Profile</button>
