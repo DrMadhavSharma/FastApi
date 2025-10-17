@@ -124,7 +124,7 @@ def admin_search(q: str, user=Depends(get_current_user), db: Session = Depends(g
         "patients": [{"id": p.id, "user_id": p.user_id, "age": p.age} for p in patients]
     }
 
-from .pydantic_models import DoctorUpdate, PatientUpdate
+from pydantic_models import DoctorUpdate, PatientUpdate
 
 @app.post("/admin/doctors")
 def admin_add_doctor(doctor: DoctorCR, user=Depends(get_current_user), db: Session = Depends(get_session)):
