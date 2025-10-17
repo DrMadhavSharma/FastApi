@@ -18,27 +18,27 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-from typing import Annotated
+# oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+# from typing import Annotated
 
-from fastapi import Depends, FastAPI
-from fastapi.security import OAuth2PasswordBearer
-from fastapi.middleware.cors import CORSMiddleware
+# from fastapi import Depends, FastAPI
+# from fastapi.security import OAuth2PasswordBearer
+# from fastapi.middleware.cors import CORSMiddleware
 
-from models import *
-from config import hash_password
+# from models import *
+# from config import hash_password
 
 
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=["*"],
+#     allow_credentials=True,
+#     allow_methods=["*"],
+#     allow_headers=["*"],
+# )
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+# oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
 @app.on_event("startup")
