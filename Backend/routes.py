@@ -1,4 +1,4 @@
-from .main import app
+from main import app
 from typing import Annotated
 from datetime import datetime, timedelta, timezone
 from starlette.responses import RedirectResponse
