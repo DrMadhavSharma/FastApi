@@ -23,7 +23,7 @@ export default function PatientDashboard() {
     medical_history: "",
   });
 
-  const API_URL = "http://localhost:8000";
+const API_URL = process.env.NEXT_PUBLIC_API_BASE;
   function formatIST(dateStr) {
   const date = new Date(dateStr);
   return date.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
