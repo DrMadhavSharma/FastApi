@@ -16,7 +16,7 @@ const Nav = () => {
   const handleLogout = () => {
     localStorage.removeItem("access_token");
     setIsLoggedIn(false);
-    router.push("https://fastapi-6mjn.onrender.com/login");
+    router.push("/login");
   };
 
   return (

@@ -139,7 +139,7 @@ export default function RegisterPage() {
 
           <div className="wire-actions">
             <button className="wire-button" type="submit" disabled={loading || !(isValidBase && isValidRole)}>{loading ? "Registering..." : "Register"}</button>
-            <p className="wire-helper">Already have an account? <a className="wire-link" href="https://fastapi-6mjn.onrender.com/login">Login</a></p>
+            <p className="wire-helper">Already have an account? <a className="wire-link" href="/login">Login</a></p>
           </div>
         </form>
       </div>
