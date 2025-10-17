@@ -307,7 +307,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_BASE;
                     </td>
                     <td style={{ padding: "8px" }}>{appt.notes || "—"}</td>
                     <td style={{ padding: "8px" }}>
-                      {new Date(appt.appointment_date).getTime() < Date.now() && appt.status !== "cancelled" &&  (
+                      {new Date(appt.appointment_date).getTime() < now.getTime() && appt.status !== "cancelled" &&  (
                         <button className="btn-cancel" onClick={() => handleCancel(appt.id)}>Cancel</button>
                       )}
                     </td>
