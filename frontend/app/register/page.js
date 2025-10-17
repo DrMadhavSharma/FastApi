@@ -34,8 +34,8 @@ export default function RegisterPage() {
     try {
       const isDoctor = role === "doctor";
       const endpoint = isDoctor
-        ? "http://localhost:8000/register/doctor"
-        : "http://localhost:8000/register/patient";
+        ? "https://fastapi-6mjn.onrender.com/register/doctor"
+        : "https://fastapi-6mjn.onrender.com/register/patient";
 
       const payload = isDoctor
         ? {
@@ -139,7 +139,7 @@ export default function RegisterPage() {
 
           <div className="wire-actions">
             <button className="wire-button" type="submit" disabled={loading || !(isValidBase && isValidRole)}>{loading ? "Registering..." : "Register"}</button>
-            <p className="wire-helper">Already have an account? <a className="wire-link" href="/login">Login</a></p>
+            <p className="wire-helper">Already have an account? <a className="wire-link" href="https://fastapi-6mjn.onrender.com/login">Login</a></p>
           </div>
         </form>
       </div>

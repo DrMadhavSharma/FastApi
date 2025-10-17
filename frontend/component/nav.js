@@ -16,7 +16,7 @@ const Nav = () => {
   const handleLogout = () => {
     localStorage.removeItem("access_token");
     setIsLoggedIn(false);
-    router.push("/login");
+    router.push("https://fastapi-6mjn.onrender.com/login");
   };
 
   return (
@@ -39,7 +39,7 @@ const Nav = () => {
               Logout
             </button>
           ) : (
-            <a href="/login" className="btn btn-primary">
+            <a href="https://fastapi-6mjn.onrender.com/login" className="btn btn-primary">
               Login
             </a>
           )}
