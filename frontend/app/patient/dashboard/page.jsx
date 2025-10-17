@@ -175,6 +175,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_BASE;
       </div>
     );
   }
+  const now = new Date().toDateString();
 
   return (
     <div className="main container">
@@ -306,7 +307,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_BASE;
                     </td>
                     <td style={{ padding: "8px" }}>{appt.notes || "—"}</td>
                     <td style={{ padding: "8px" }}>
-                      {appt.status !== "cancelled" && (
+                      {new Date(appt.appointment_date).toDateString() < now && appt.status !== "cancelled" && (
                         <button className="btn-cancel" onClick={() => handleCancel(appt.id)}>Cancel</button>
                       )}
                     </td>
