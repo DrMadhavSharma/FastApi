@@ -4,19 +4,21 @@ from fastapi import Depends, FastAPI
 from fastapi.security import OAuth2PasswordBearer
 from models import *
 app = FastAPI()
-from routes import *
+# from routes import *
 from fastapi.middleware.cors import CORSMiddleware
 from config import hash_password
 
 from fastapi.middleware.cors import CORSMiddleware
 
-app.add_middleware(  
+app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://fastapi-frontend-h1vg.onrender.com"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+from routes import *
 
 # oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 # from typing import Annotated
