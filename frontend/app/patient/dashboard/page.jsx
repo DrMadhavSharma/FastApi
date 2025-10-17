@@ -175,7 +175,8 @@ const API_URL = process.env.NEXT_PUBLIC_API_BASE;
       </div>
     );
   }
-  const now = new Date().toDateString();
+const apptDate = new Date(appt.appointment_date);
+const isFuture = apptDate.getTime() > now.getTime();
 
   return (
     <div className="main container">
@@ -307,7 +308,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_BASE;
                     </td>
                     <td style={{ padding: "8px" }}>{appt.notes || "—"}</td>
                     <td style={{ padding: "8px" }}>
-                      {new Date(appt.appointment_date).getTime() < now.getTime() && appt.status !== "cancelled" &&  (
+                      {isFuture && appt.status !== "cancelled" &&  (
                         <button className="btn-cancel" onClick={() => handleCancel(appt.id)}>Cancel</button>
                       )}
                     </td>
