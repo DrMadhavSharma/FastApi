@@ -65,3 +65,6 @@ class AppointmentBook(BaseModel):
     doctor_id: int
     appointment_date: str
     notes: str | None = None
+
+class AppointmentStatusUpdate(BaseModel):
+    status: str  # e.g., "scheduled", "completed", "canceled"

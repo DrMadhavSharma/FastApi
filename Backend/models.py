@@ -18,12 +18,13 @@ db_url = f"postgresql://{user}:{password}@{host}:{port}/{dbname}?sslmode=prefer"
 # Synchronous engine
 engine = create_engine(
     db_url,
+    pool_size=5,        # small pool to stay under limit
+    max_overflow=0,     # no extra connections
     pool_pre_ping=True,
-    connect_args={"sslmode": "require"}  # needed for Supabase
+    connect_args={"sslmode": "prefer"},
 )
 
-# Sync session
-SessionLocal = Session(engine)
+
 
 # Function to create tables synchronously
 def init_db():
@@ -37,136 +38,7 @@ def get_session():
         yield session
 
 
-# from sqlmodel import SQLModel, Field, Relationship
-# from sqlalchemy import ForeignKey
-# from datetime import datetime
-# from enum import Enum
-# from typing import List, Optional
 
-# class Role(str, Enum):
-#     admin = "admin"
-#     doctor = "doctor"
-#     patient = "patient"
-
-# class AppointmentStatus(str, Enum):
-#     scheduled = "scheduled"
-#     completed = "completed"
-#     canceled = "canceled"
-
-# from sqlalchemy.orm import foreign
-
-# class User(SQLModel, table=True):
-#     id: int | None = Field(default=None, primary_key=True)
-#     name: str
-#     role: Role
-#     password: str
-#     email: str
-#     created_at: datetime = Field(default_factory=datetime.utcnow)
-#     updated_at: datetime = Field(default_factory=datetime.utcnow)
-#     is_active: bool = Field(default=True)
-
-#     # Relationships
-#     doctor_appointments: list["Appointment"] = Relationship(
-#         back_populates="doctor",
-#         sa_relationship_kwargs={
-#             "primaryjoin": "User.id == foreign(Appointment.doctor_id)",
-#             "foreign_keys": "[Appointment.doctor_id]"
-#         }
-#     )
-#     patient_appointments: list["Appointment"] = Relationship(
-#         back_populates="patient",
-#         sa_relationship_kwargs={
-#             "primaryjoin": "User.id == foreign(Appointment.patient_id)",
-#             "foreign_keys": "[Appointment.patient_id]"
-#         }
-#     )
-
-# class Appointment(SQLModel, table=True):
-#     id: int | None = Field(default=None, primary_key=True)
-#     doctor_id: int = Field(ForeignKey("user.id"))
-#     patient_id: int = Field(ForeignKey("user.id"))
-#     appointment_date: datetime
-#     status: AppointmentStatus = Field(default=AppointmentStatus.scheduled)
-#     notes: str | None = None
-
-#     doctor: User = Relationship(
-#         back_populates="doctor_appointments",
-#         sa_relationship_kwargs={"foreign_keys": "[Appointment.doctor_id]"}
-#     )
-#     patient: User = Relationship(
-#         back_populates="patient_appointments",
-#         sa_relationship_kwargs={"foreign_keys": "[Appointment.patient_id]"}
-#     )
-# from sqlalchemy import (
-#     create_engine, Column, Integer, String, DateTime, Boolean,
-#     ForeignKey, Enum
-# )
-# from sqlalchemy.orm import declarative_base, relationship, sessionmaker
-# from datetime import datetime
-# import enum
-
-# Base = declarative_base()
-
-# # ------------------------
-# # Enums
-# # ------------------------
-# class RoleEnum(enum.Enum):
-#     admin = "admin"
-#     doctor = "doctor"
-#     patient = "patient"
-
-# class AppointmentStatusEnum(enum.Enum):
-#     scheduled = "scheduled"
-#     completed = "completed"
-#     canceled = "canceled"
-
-# # ------------------------
-# # User Table
-# # ------------------------
-# class User(Base):
-#     __tablename__ = "users"
-
-#     id = Column(Integer, primary_key=True, autoincrement=True)
-#     name = Column(String, nullable=False)
-#     email = Column(String, unique=True, nullable=False)
-#     password = Column(String, nullable=False)
-#     role = Column(Enum(RoleEnum), nullable=False)
-#     is_active = Column(Boolean, default=True)
-#     is_verified = Column(Boolean, default=False)
-#     specialty = Column(String, nullable=True)  # <- doctor-specific
-#     bio = Column(String, nullable=True)
-#     created_at = Column(DateTime, default=datetime.utcnow)
-#     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-#     last_login = Column(DateTime, nullable=True)
-
-#     # Relationships
-#     doctor_appointments = relationship(
-#         "Appointment",
-#         back_populates="doctor",
-#         foreign_keys="Appointment.doctor_id"
-#     )
-#     patient_appointments = relationship(
-#         "Appointment",
-#         back_populates="patient",
-#         foreign_keys="Appointment.patient_id"
-#     )
-
-# # ------------------------
-# # Appointment Table
-# # ------------------------
-# class Appointment(Base):
-#     __tablename__ = "appointments"
-
-#     id = Column(Integer, primary_key=True, autoincrement=True)
-#     doctor_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-#     patient_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-#     appointment_date = Column(DateTime, nullable=False)
-#     status = Column(Enum(AppointmentStatusEnum), default=AppointmentStatusEnum.scheduled)
-#     notes = Column(String, nullable=True)
-
-#     # Relationships
-#     doctor = relationship("User", foreign_keys=[doctor_id], back_populates="doctor_appointments")
-#     patient = relationship("User", foreign_keys=[patient_id], back_populates="patient_appointments")
 from sqlalchemy import (
     Column, Integer, String, DateTime, Boolean, Enum, ForeignKey, Text
 )

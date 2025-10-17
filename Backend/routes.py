@@ -11,7 +11,27 @@ from .config import create_access_token , verify_token , get_current_user
 from sqlalchemy import func
 import json
 from dateutil import parser
+from typing import List, Dict
+import pytz
+def enforce_user_limit(db: Session):
+    MAX_ACTIVE_USERS = 500
+    total_active = db.query(User).filter(User.is_active==True).count()
+    if total_active >= MAX_ACTIVE_USERS:
+        # mark oldest active users as inactive
+        to_deactivate = db.query(User)\
+                          .filter(User.is_active==True)\
+                          .order_by(User.id.asc())\
+                          .limit(total_active - MAX_ACTIVE_USERS + 1)\
+                          .all()
+        for u in to_deactivate:
+            u.is_active = False
+        db.commit()
 
+def utc_to_ist(dt):
+    if dt is None:
+        return None
+    ist = pytz.timezone('Asia/Kolkata')
+    return dt.astimezone(ist)
 def require_admin(user):
     if "admin" not in user.get("roles", []):
         raise HTTPException(status_code=403, detail="Admin only")
@@ -43,6 +63,7 @@ def index_page():
 #     return {"message": "Login Page"}
 @app.post("/login")
 def login_page(user: Login, db: Session = Depends(get_session)):
+    enforce_user_limit(db)
     db_user = authenticate_user(db, user.email, user.password)
 
     if not db_user:
@@ -85,7 +106,7 @@ def admin_list_appointments(user=Depends(get_current_user), db: Session = Depend
             "id": a.id,
             "doctor_id": a.doctor_id,
             "patient_id": a.patient_id,
-            "appointment_date": a.appointment_date,
+            "appointment_date": utc_to_ist(a.appointment_date),
             "status": a.status.value,
             "notes": a.notes
         })
@@ -196,6 +217,7 @@ def admin_remove_patient(patient_id: int, user=Depends(get_current_user), db: Se
     return {"status": "blacklisted"}
 @app.post("/register/doctor")
 def register_doctor(doctor: DoctorCR, db: Session = Depends(get_session)):
+    enforce_user_limit(db)
     # 1. Check if user with same email exists
     existing_user = db.execute(
         select(User).where(User.email == doctor.email)
@@ -234,6 +256,7 @@ def register_doctor(doctor: DoctorCR, db: Session = Depends(get_session)):
     }
 @app.post("/register/patient")
 def p_register_page(patient:PatientCR,db :Session =Depends(get_session)):
+    enforce_user_limit(db)
     # 1. Check if user with same email exists
     existing_user = db.execute(
         select(User).where(User.email == patient.email)
@@ -312,6 +335,7 @@ def get_appointments(current_user: dict = Depends(get_current_user), db: Session
     elif db_user.role == RoleEnum.doctor:
         doctor = db_user.doctor_profile
         appointments = db.query(Appointment).filter(Appointment.doctor_id == doctor.id).all()
+        print(appointments)
     else:
         appointments = db.query(Appointment).all()  # for admin
 
@@ -323,7 +347,7 @@ def get_appointments(current_user: dict = Depends(get_current_user), db: Session
             "doctor_id": a.doctor_id,
             "doctor_name": a.doctor.user.username,  # add this
             "patient_id": a.patient_id,
-            "appointment_date": a.appointment_date.isoformat(),
+            "appointment_date": utc_to_ist(a.appointment_date),
             "status": a.status.value,
             "notes": a.notes
         })
@@ -527,3 +551,165 @@ def patient_update(payload: PatientUpdate, user=Depends(get_current_user), db: S
     if payload.medical_history is not None: patient.medical_history = payload.medical_history
     db.add_all([db_user, patient]); db.commit()
     return {"status": "updated"}
+#doctor's patients
+@app.get("/doctors/patients")
+def get_doctor_patients(
+    db: Session = Depends(get_session),
+    current_user: dict = Depends(get_current_user),
+):
+    """
+    Return all unique patients assigned to the logged-in doctor.
+    """
+    # 1️⃣ Ensure current user is a doctor
+    if "doctor" not in current_user["roles"]:
+        raise HTTPException(status_code=403, detail="Access restricted to doctors only")
+
+    # 2️⃣ Find doctor by user email (join with User)
+    doctor = (
+        db.query(Doctor)
+        .join(User)
+        .filter(User.email == current_user["email"])
+        .first()
+    )
+
+    if not doctor:
+        raise HTTPException(status_code=404, detail="Doctor profile not found")
+
+    # 3️⃣ Get all unique patient_ids linked to this doctor
+    patient_ids = (
+        db.query(Appointment.patient_id)
+        .filter(Appointment.doctor_id == doctor.id)
+        .distinct()
+        .all()
+    )
+    patient_ids = [pid[0] for pid in patient_ids]
+
+    if not patient_ids:
+        return []
+
+    # 4️⃣ Fetch patient + user details
+    patients = (
+        db.query(Patient, User)
+        .join(User, Patient.user_id == User.id)
+        .filter(Patient.id.in_(patient_ids))
+        .all()
+    )
+
+    # 5️⃣ Build response
+    result = []
+    for patient, user in patients:
+        result.append({
+            "id": patient.id,
+            "username": user.username,
+            "email": user.email,
+            "age": patient.age,
+            "address": patient.address,
+            "medical_history": patient.medical_history,
+        })
+
+    return result
+@app.put("/doctor/appointments/{id}/status")
+def update_appointment_status(
+    id: int,
+    payload: AppointmentStatusUpdate,
+    db: Session = Depends(get_session),
+    current_user: dict = Depends(get_current_user),
+):
+    """
+    Allow doctors to update the status of their appointments.
+    """
+    # 1️⃣ Ensure current user is a doctor
+    if "doctor" not in current_user["roles"]:
+        raise HTTPException(status_code=403, detail="Access restricted to doctors only")
+
+    # 2️⃣ Find doctor by user email (join with User)
+    doctor = (
+        db.query(Doctor)
+        .join(User)
+        .filter(User.email == current_user["email"])
+        .first()
+    )
+
+    if not doctor:
+        raise HTTPException(status_code=404, detail="Doctor profile not found")
+
+    # 3️⃣ Fetch the appointment ensuring it belongs to this doctor
+    appointment = db.query(Appointment).filter(
+        Appointment.id == id,
+        Appointment.doctor_id == doctor.id
+    ).first()
+
+    if not appointment:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+
+    # 4️⃣ Update status
+    appointment.status = payload.status
+    db.commit()
+    db.refresh(appointment)
+
+    return {
+        "message": "Appointment status updated successfully",
+        "appointment": {
+            "id": appointment.id,
+            "doctor_id": appointment.doctor_id,
+            "patient_id": appointment.patient_id,
+            "appointment_date": utc_to_ist(appointment.appointment_date),
+            "status": appointment.status.value,
+            "notes": appointment.notes,
+        },
+    }
+# -------------------------
+# Get Doctor Availability
+# -------------------------
+@app.get("/doctor/availability")
+def get_availability(
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_session)
+):
+    if "doctor" not in current_user["roles"]:
+        raise HTTPException(status_code=403, detail="Access restricted to doctors")
+    
+    doctor = db.query(Doctor).join(User).filter(User.email == current_user["email"]).first()
+    if not doctor:
+        raise HTTPException(status_code=404, detail="Doctor profile not found")
+    
+    availability = json.loads(doctor.availability) if doctor.availability else []
+    return {"availability": availability}
+
+
+# -------------------------
+# Update Doctor Availability
+# -------------------------
+@app.put("/doctor/availability")
+def update_availability(
+    payload: Dict[str, List[Dict[str, str]]],
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_session)
+):
+    """
+    payload example:
+    {
+      "days": [
+        {"date": "2025-10-18", "slots": "09:00-12:00,14:00-18:00"},
+        {"date": "2025-10-19", "slots": "10:00-13:00"}
+      ]
+    }
+    """
+    if "doctor" not in current_user["roles"]:
+        raise HTTPException(status_code=403, detail="Access restricted to doctors")
+    
+    doctor = db.query(Doctor).join(User).filter(User.email == current_user["email"]).first()
+    if not doctor:
+        raise HTTPException(status_code=404, detail="Doctor profile not found")
+    
+    days = payload.get("days")
+    if not days or not isinstance(days, list):
+        raise HTTPException(status_code=400, detail="Invalid payload format")
+    
+    # Save as JSON string
+    doctor.availability = json.dumps(days)
+    db.add(doctor)
+    db.commit()
+    db.refresh(doctor)
+    
+    return {"message": "Availability updated successfully", "availability": days}

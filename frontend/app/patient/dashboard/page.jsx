@@ -24,7 +24,10 @@ export default function PatientDashboard() {
   });
 
   const API_URL = "http://localhost:8000";
-
+  function formatIST(dateStr) {
+  const date = new Date(dateStr);
+  return date.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
+}
   // Fetch appointments and doctors
   useEffect(() => {
     async function fetchData() {
@@ -168,7 +171,7 @@ export default function PatientDashboard() {
     return (
       <div className="grid-center">
         <div className="spinner"></div>
-        <p style={{ marginTop: "12px", color: "var(--muted)" }}>Loading data...</p>
+        <p style={{ marginTop: "12px", color: "var(--muted)" }}></p>
       </div>
     );
   }
@@ -232,7 +235,7 @@ export default function PatientDashboard() {
             </div>
             <div className="field">
               <label className="label">Date & Time</label>
-              <input type="datetime-local" className="input" name="appointment_date" value={booking.appointment_date} onChange={handleBookingChange} required />
+              <input type="datetime-local" className="input" name="appointment_date" value={formatIST(booking.appointment_date)} onChange={handleBookingChange} required />
             </div>
             <div className="field">
               <label className="label">Notes</label>
@@ -288,7 +291,7 @@ export default function PatientDashboard() {
                 return (
                   <tr key={appt.id}>
                     <td style={{ padding: "8px" }}>{doctor?.username || "Unknown"}</td>
-                    <td style={{ padding: "8px" }}>{new Date(appt.appointment_date).toLocaleString()}</td>
+                    <td style={{ padding: "8px" }}>{formatIST(appt.appointment_date)}</td>
                     <td style={{ padding: "8px" }}>
                       <span style={{
                         display: "inline-block",
