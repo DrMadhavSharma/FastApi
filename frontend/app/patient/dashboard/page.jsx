@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 async function triggerCsvExport(patientId, patientEmail) {
   try {
-    const res = await fetch("https://qstash.upstash.io/v1/publish/https://fastapi-frontend-h1vg.onrender.com/export-csv", {
+    const res = await fetch("https://qstash.upstash.io/v1/publish/https://fastapi-6mjn.onrender.com/jobs/export-csv", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${process.env.QSTASH_TOKEN}`,
