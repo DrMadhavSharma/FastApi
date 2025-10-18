@@ -1,6 +1,38 @@
 "use client";
 
 import { useEffect, useState } from "react";
+
+
+export default function PatientDashboard() {
+  const [user, setUser] = useState({ name: "Patient" });
+  const [appointments, setAppointments] = useState([]);
+  const [doctors, setDoctors] = useState([]);
+  const [specializations, setSpecializations] = useState([]);
+  const [selectedSpec, setSelectedSpec] = useState("");
+  const [exporting, setExporting] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [selectedPatient, setSelectedPatient] = useState(null);
+  const [patients, setPatients] = useState([]); // Fetch from backend if needed
+
+  const [booking, setBooking] = useState({
+    doctor_id: "",
+    appointment_date: "",
+    notes: "",
+  });
+  const [profile, setProfile] = useState({
+    username: "",
+    email: "",
+    password: "",
+    age: "",
+    address: "",
+    medical_history: "",
+  });
+
+const API_URL = process.env.NEXT_PUBLIC_API_BASE;
+  function formatIST(dateStr) {
+  const date = new Date(dateStr);
+  return date.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
+}
 // Trigger CSV export via your backend
 async function triggerCsvExport() {
   try {
@@ -32,37 +64,6 @@ async function triggerCsvExport() {
   } finally {
     setExporting(false);
   }
-}
-
-export default function PatientDashboard() {
-  const [user, setUser] = useState({ name: "Patient" });
-  const [appointments, setAppointments] = useState([]);
-  const [doctors, setDoctors] = useState([]);
-  const [specializations, setSpecializations] = useState([]);
-  const [selectedSpec, setSelectedSpec] = useState("");
-  const [exporting, setExporting] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [selectedPatient, setSelectedPatient] = useState(null);
-  const [patients, setPatients] = useState([]); // Fetch from backend if needed
-
-  const [booking, setBooking] = useState({
-    doctor_id: "",
-    appointment_date: "",
-    notes: "",
-  });
-  const [profile, setProfile] = useState({
-    username: "",
-    email: "",
-    password: "",
-    age: "",
-    address: "",
-    medical_history: "",
-  });
-
-const API_URL = process.env.NEXT_PUBLIC_API_BASE;
-  function formatIST(dateStr) {
-  const date = new Date(dateStr);
-  return date.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
 }
   // Fetch appointments and doctors
   useEffect(() => {
