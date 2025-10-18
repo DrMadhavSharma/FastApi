@@ -1,10 +1,12 @@
-from fastapi import APIRouter, Depends, Body, HTTPException
+from fastapi import APIRouter, Depends, Body, HTTPException, Request
 from sqlalchemy.orm import Session
 from models import get_session
 from models import Appointment, Patient
 from utils.email_utils import send_csv_email
 import csv, io
 from main import app
+import httpx
+import os
 
 
 @app.post("/export-csv")
@@ -45,3 +47,17 @@ def export_csv_job(
     send_csv_email(patient_email, csv_bytes, f"treatments_{patient_id}.csv")
 
     return {"message": f"CSV sent to {patient_email}"}
+@app.post("/trigger-export")
+async def trigger_export(request: Request):
+    body = await request.json()
+    async with httpx.AsyncClient() as client:
+        res = await client.post(
+            "https://qstash.upstash.io/v1/publish",
+            headers={"Authorization": f"Bearer {os.getenv('QSTASH_TOKEN')}"},
+            json={
+                "url": "https://fastapi-6mjn.onrender.com/jobs/export-csv",
+                "method": "POST",
+                "body": body
+            }
+        )
+    return res.json()

@@ -1,27 +1,36 @@
 "use client";
 
 import { useEffect, useState } from "react";
-async function triggerCsvExport(patientId, patientEmail) {
+// Trigger CSV export via your backend
+async function triggerCsvExport() {
   try {
-    const res = await fetch("https://qstash.upstash.io/v1/publish/https://fastapi-6mjn.onrender.com/jobs/export-csv", {
+    setExporting(true);
+
+    const token = localStorage.getItem("access_token");
+    if (!token) throw new Error("No token found");
+
+    const res = await fetch(`${API_URL}/trigger-export`, {
       method: "POST",
-      headers: {
-        "Authorization": `Bearer ${process.env.QSTASH_TOKEN}`,
-        "Content-Type": "application/json"
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}` 
       },
       body: JSON.stringify({
-        url: "https://fastapi-6mjn.onrender.com/jobs/export-csv",
-        method: "POST",
-        body: { patient_id: patientId, patient_email: patientEmail }
+        patient_id: profile.id,
+        patient_email: profile.email
       })
     });
+
+    if (!res.ok) throw new Error("Failed to queue CSV export");
 
     const data = await res.json();
     alert("CSV export job queued successfully!");
     console.log(data);
   } catch (err) {
     console.error(err);
-    alert("Failed to queue CSV export.");
+    alert(err.message);
+  } finally {
+    setExporting(false);
   }
 }
 
