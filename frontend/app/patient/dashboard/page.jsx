@@ -120,7 +120,14 @@ async function triggerCsvExport() {
       console.error(err);
     }
   };
-
+  function formatForInput(dateStr) {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return "";
+    const tzOffset = date.getTimezoneOffset() * 60000;
+    const localISO = new Date(date - tzOffset).toISOString().slice(0,16);
+    return localISO;
+  }
   const handleBookingChange = (e) => {
     setBooking({ ...booking, [e.target.name]: e.target.value });
   };
@@ -284,14 +291,6 @@ async function triggerCsvExport() {
             </div>
             <div className="field">
               <label className="label">Date & Time</label>
-              {function formatForInput(dateStr) {
-                if (!dateStr) return "";
-                const date = new Date(dateStr);
-                const tzOffset = date.getTimezoneOffset() * 60000;
-                const localISO = new Date(date - tzOffset).toISOString().slice(0,16);
-                return localISO;
-              }
-              }
               <input type="datetime-local" className="input" name="appointment_date" value={formatForInput(booking.appointment_date)} onChange={handleBookingChange} required />
             </div>
             <div className="field">
