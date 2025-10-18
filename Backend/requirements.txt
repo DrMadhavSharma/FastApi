@@ -56,4 +56,4 @@ uvloop==0.21.0
 watchfiles==1.1.0
 websockets==15.0.1
 sendgrid==6.9.7
-requests==2.34.0
+requests==2.32.5
