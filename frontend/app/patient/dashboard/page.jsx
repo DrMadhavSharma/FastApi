@@ -41,7 +41,7 @@ async function triggerCsvExport() {
     const token = localStorage.getItem("access_token");
     if (!token) throw new Error("No token found");
 
-    const res = await fetch(`${API_URL}/trigger-export`, {
+    const res = await fetch(`https://fastapi-6mjn.onrender.com/trigger-export`, {
       method: "POST",
       headers: { 
         "Content-Type": "application/json",
