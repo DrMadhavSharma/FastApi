@@ -19,7 +19,7 @@ app.add_middleware(
 )
 
 from routes import *
-from jobs import *  # noqa: E402
+  # noqa: E402
 from utils import *
 
 # oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
