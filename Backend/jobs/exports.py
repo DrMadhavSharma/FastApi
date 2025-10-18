@@ -55,7 +55,7 @@ async def trigger_export(request: Request):
             "https://qstash.upstash.io/v1/publish",
             headers={"Authorization": f"Bearer {os.getenv('QSTASH_TOKEN')}"},
             json={
-                "url": "https://fastapi-6mjn.onrender.com/jobs/export-csv",
+                "url": "https://fastapi-6mjn.onrender.com/export-csv",
                 "method": "POST",
                 "body": body
             }
