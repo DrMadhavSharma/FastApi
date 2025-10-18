@@ -1244,11 +1244,18 @@ def daily_reminder_job(session: Session = Depends(get_session)):
         Appointment.status == "scheduled"
     ).all()
 
+    sent_emails = []
+
     for a in appointments:
         send_email(
             a.patient.user.email,
             "Appointment Reminder",
             f"Hello {a.patient.user.username}! You have an appointment with Dr. {a.doctor.user.username} today at {a.appointment_date}."
         )
+        sent_emails.append(a.patient.user.email)
 
-    return {"message": f"{len(appointments)} reminders sent"}
+    return {
+        "message": f"{len(appointments)} reminders sent",
+        "sent_to": sent_emails
+    }
+
