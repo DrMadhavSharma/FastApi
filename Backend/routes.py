@@ -1107,5 +1107,148 @@ def patient_cancel(appointment_id: int, user=Depends(get_current_user), db: Sess
     appt.status = AppointmentStatusEnum.canceled
     db.add(appt); db.commit()
     return {"status": "canceled"}
+##################################################################################3
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+from models import get_session
+from models import Doctor, Appointment
+from utils.email_utils import send_email
+from datetime import date
+import calendar
+from main import app
+from fastapi import APIRouter, Depends, Body, HTTPException, Request
+from sqlalchemy.orm import Session
+from models import get_session
+from models import Appointment, Patient
+from utils.email_utils import send_csv_email
+import csv, io
+from main import app
+import httpx
+import os
 
 
+@app.post("/export-csv")
+def export_csv_job(
+    patient_id: int = Body(...), 
+    patient_email: str = Body(...),
+    session: Session = Depends(get_session)
+):
+    """Generate CSV of a patient's treatments and email it."""
+    patient = session.query(Patient).filter(Patient.id == patient_id).first()
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+    appointments = session.query(Appointment).filter(
+        Appointment.patient_id == patient_id
+    ).all()
+
+    if not appointments:
+        return {"message": "No treatment records found"}
+
+    # Build CSV
+    buffer = io.StringIO()
+    writer = csv.DictWriter(
+        buffer,
+        fieldnames=["Doctor", "Date", "Diagnosis/Notes", "Treatment"]
+    )
+    writer.writeheader()
+
+    for a in appointments:
+        writer.writerow({
+            "Doctor": a.doctor.user.username,
+            "Date": a.appointment_date,
+            "Diagnosis/Notes": a.notes or "",
+            "Treatment": a.notes or "",
+        })
+
+    csv_bytes = buffer.getvalue().encode()
+    send_csv_email(patient_email, csv_bytes, f"treatments_{patient_id}.csv")
+
+    return {"message": f"CSV sent to {patient_email}"}
+@app.post("/trigger-export")
+async def trigger_export(request: Request):
+    body = await request.json()
+    async with httpx.AsyncClient() as client:
+        res = await client.post(
+            "https://qstash.upstash.io/v1/publish",
+            headers={"Authorization": f"Bearer {os.getenv('QSTASH_TOKEN')}"},
+            json={
+                "url": "https://fastapi-6mjn.onrender.com/export-csv",
+                "method": "POST",
+                "body": body
+            }
+        )
+    return res.json()
+
+@app.post("/monthly-report")
+def monthly_report_job(session: Session = Depends(get_session)):
+    """Send monthly report to doctors with appointments done in current month."""
+    today = date.today()
+    start_date = today.replace(day=1)
+    _, last_day = calendar.monthrange(today.year, today.month)
+    end_date = today.replace(day=last_day)
+
+    doctors = session.query(Doctor).all()
+    sent_count = 0
+
+    for doc in doctors:
+        appointments = session.query(Appointment).filter(
+            Appointment.doctor_id == doc.id,
+            Appointment.appointment_date >= start_date,
+            Appointment.appointment_date <= end_date
+        ).all()
+
+        if not appointments:
+            continue
+
+        rows = "".join(
+            f"<tr><td>{a.patient.user.username}</td><td>{a.appointment_date}</td><td>{a.notes or ''}</td></tr>"
+            for a in appointments
+        )
+        html_report = f"""
+        <h3>Monthly Activity Report</h3>
+        <table border='1' cellpadding='5'>
+            <tr><th>Patient</th><th>Date</th><th>Notes</th></tr>
+            {rows}
+        </table>
+        """
+        send_email(doc.user.email, "Monthly Activity Report", html_report, html=True)
+        sent_count += 1
+
+    return {"message": f"Monthly reports sent to {sent_count} doctors"}
+
+from utils.qstash_utils import schedule_job
+import os
+
+BACKEND_URL = os.getenv("BACKEND_URL","https://fastapi-6mjn.onrender.com")
+
+def register_jobs():
+    # Daily reminders → every day at 8AM
+    daily_endpoint = f"{BACKEND_URL}/daily-reminder"
+    print("Scheduling daily reminders...")
+    print(schedule_job(daily_endpoint, "* * * * *"))
+
+    # Monthly reports → first day of month at 8AM
+    monthly_endpoint = f"{BACKEND_URL}/monthly-report"
+    print("Scheduling monthly reports...")
+    print(schedule_job(monthly_endpoint, "* * * * *"))
+
+if __name__ == "__main__":
+    register_jobs()
+@app.post("/daily-reminder")
+def daily_reminder_job(session: Session = Depends(get_session)):
+    """Send daily reminders to patients with appointments today."""
+    today = date.today()
+    appointments = session.query(Appointment).filter(
+        Appointment.appointment_date >= today,
+        Appointment.status == "scheduled"
+    ).all()
+
+    for a in appointments:
+        send_email(
+            a.patient.user.email,
+            "Appointment Reminder",
+            f"Hello {a.patient.user.username}! You have an appointment with Dr. {a.doctor.user.username} today at {a.appointment_date}."
+        )
+
+    return {"message": f"{len(appointments)} reminders sent"}
