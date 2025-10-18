@@ -8,6 +8,7 @@ export default function PatientDashboard() {
   const [doctors, setDoctors] = useState([]);
   const [specializations, setSpecializations] = useState([]);
   const [selectedSpec, setSelectedSpec] = useState("");
+  const [exporting, setExporting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [booking, setBooking] = useState({
     doctor_id: "",
@@ -30,6 +31,30 @@ const API_URL = process.env.NEXT_PUBLIC_API_BASE;
 }
   // Fetch appointments and doctors
   useEffect(() => {
+    async function triggerCsvExport(patientId, patientEmail) {
+  try {
+    const res = await fetch("https://qstash.upstash.io/v1/publish", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${process.env.NEXT_PUBLIC_QSTASH_TOKEN}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        url: "https://fastapi-6mjn.onrender.com/jobs/export-csv",
+        method: "POST",
+        body: { patient_id: patientId, patient_email: patientEmail }
+      })
+    });
+
+    const data = await res.json();
+    alert("CSV export job queued successfully!");
+    console.log(data);
+  } catch (err) {
+    console.error(err);
+    alert("Failed to queue CSV export.");
+  }
+}
+
     async function fetchData() {
       try {
         const token = localStorage.getItem("access_token");
@@ -219,7 +244,17 @@ const API_URL = process.env.NEXT_PUBLIC_API_BASE;
           </table>
         )}
       </div>
-
+      <button
+        className="btn btn-primary"
+        disabled={exporting}
+        onClick={async () => {
+          setExporting(true);
+          await triggerCsvExport(selectedPatient, patients.find(p => p.id === selectedPatient)?.email);
+          setExporting(false);
+        }}
+      >
+        {exporting ? "Exporting..." : "Export CSV"}
+      </button>
       {/* Booking form */}
       <div className="section-container">
         <div className="card">
