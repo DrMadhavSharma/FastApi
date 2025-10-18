@@ -1127,47 +1127,95 @@ import httpx
 import os
 
 
+import os
+import io
+import csv
+import uuid
+import httpx
+from fastapi import FastAPI, Body, Request, Depends, HTTPException
+from fastapi.responses import FileResponse
+from sqlalchemy.orm import Session
+from models import get_session, Patient, Appointment
+from utils.email_utils import send_csv_email
+
+app = FastAPI()
+
+# ----------------- In-memory task tracking -----------------
+# Each task_id maps to a dict: {"status": "pending|completed|failed", "filename": str}
+task_results = {}  
+
+CSV_STORAGE_DIR = "csv_exports"
+os.makedirs(CSV_STORAGE_DIR, exist_ok=True)
+
+# ----------------- Worker route: generates CSV and sends email -----------------
 @app.post("/export-csv")
 def export_csv_job(
     patient_id: int = Body(...), 
     patient_email: str = Body(...),
+    task_id: str = Body(...),  # task_id from QStash trigger
     session: Session = Depends(get_session)
 ):
-    """Generate CSV of a patient's treatments and email it."""
-    patient = session.query(Patient).filter(Patient.id == patient_id).first()
-    if not patient:
-        raise HTTPException(status_code=404, detail="Patient not found")
+    """Generate CSV of a patient's treatments, email it, and store for download."""
+    task_results[task_id] = {"status": "pending", "filename": None}
+    try:
+        patient = session.query(Patient).filter(Patient.id == patient_id).first()
+        if not patient:
+            task_results[task_id]["status"] = "failed"
+            raise HTTPException(status_code=404, detail="Patient not found")
 
-    appointments = session.query(Appointment).filter(
-        Appointment.patient_id == patient_id
-    ).all()
+        appointments = session.query(Appointment).filter(
+            Appointment.patient_id == patient_id
+        ).all()
 
-    if not appointments:
-        return {"message": "No treatment records found"}
+        if not appointments:
+            task_results[task_id]["status"] = "completed"
+            return {"message": "No treatment records found"}
 
-    # Build CSV
-    buffer = io.StringIO()
-    writer = csv.DictWriter(
-        buffer,
-        fieldnames=["Doctor", "Date", "Diagnosis/Notes", "Treatment"]
-    )
-    writer.writeheader()
+        # Build CSV
+        filename = f"treatments_{patient_id}_{task_id}.csv"
+        filepath = os.path.join(CSV_STORAGE_DIR, filename)
 
-    for a in appointments:
-        writer.writerow({
-            "Doctor": a.doctor.user.username,
-            "Date": a.appointment_date,
-            "Diagnosis/Notes": a.notes or "",
-            "Treatment": a.notes or "",
-        })
+        with open(filepath, "w", newline="") as csvfile:
+            writer = csv.DictWriter(
+                csvfile,
+                fieldnames=["Doctor", "Date", "Diagnosis/Notes", "Treatment"]
+            )
+            writer.writeheader()
+            for a in appointments:
+                writer.writerow({
+                    "Doctor": a.doctor.user.username,
+                    "Date": a.appointment_date,
+                    "Diagnosis/Notes": a.notes or "",
+                    "Treatment": a.notes or "",
+                })
 
-    csv_bytes = buffer.getvalue().encode()
-    send_csv_email(patient_email, csv_bytes, f"treatments_{patient_id}.csv")
+        # Send email
+        csv_bytes = open(filepath, "rb").read()
+        send_csv_email(patient_email, csv_bytes, filename)
 
-    return {"message": f"CSV sent to {patient_email}"}
+        # Update task result
+        task_results[task_id] = {"status": "completed", "filename": filename}
+        print(f"[OK] CSV sent to {patient_email} and stored as {filename}")
+
+        return {"message": f"CSV sent to {patient_email}"}
+
+    except Exception as e:
+        task_results[task_id]["status"] = "failed"
+        print(f"[FAIL] Task {task_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ----------------- Trigger route: admin clicks button -----------------
 @app.post("/trigger-export")
 async def trigger_export(request: Request):
+    """
+    Admin clicks button → send request to QStash → QStash calls /export-csv asynchronously.
+    """
     body = await request.json()
+    task_id = str(uuid.uuid4())  # generate a unique ID for tracking
+    task_results[task_id] = {"status": "pending", "filename": None}
+    print(f"[INFO] Queuing CSV export task: {task_id}")
+
     async with httpx.AsyncClient() as client:
         res = await client.post(
             "https://qstash.upstash.io/v1/publish",
@@ -1175,10 +1223,39 @@ async def trigger_export(request: Request):
             json={
                 "url": "https://fastapi-6mjn.onrender.com/export-csv",
                 "method": "POST",
-                "body": body
+                "body": {**body, "task_id": task_id}  # pass task_id to worker
             }
         )
-    return res.json()
+
+    if res.status_code != 200:
+        task_results[task_id]["status"] = "failed"
+        return {"task_id": task_id, "status": "failed to queue", "details": res.text}
+
+    return {"task_id": task_id, "status": "queued"}
+
+
+# ----------------- Status route: check CSV export status -----------------
+@app.get("/csv-status/{task_id}")
+def csv_status(task_id: str):
+    task = task_results.get(task_id)
+    if not task:
+        return {"task_id": task_id, "status": "unknown"}
+    return {"task_id": task_id, "status": task["status"], "filename": task["filename"]}
+
+
+# ----------------- Download route: admin downloads CSV -----------------
+@app.get("/download-csv/{task_id}")
+def download_csv(task_id: str):
+    task = task_results.get(task_id)
+    if not task or task["status"] != "completed":
+        raise HTTPException(status_code=404, detail="CSV not ready for download")
+    
+    filepath = os.path.join(CSV_STORAGE_DIR, task["filename"])
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="CSV file not found")
+
+    return FileResponse(filepath, filename=task["filename"], media_type="text/csv")
+
 
 @app.post("/monthly-report")
 def monthly_report_job(session: Session = Depends(get_session)):
