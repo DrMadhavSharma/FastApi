@@ -12,7 +12,7 @@ def schedule_job(endpoint: str, cron: str):
     body = {
         "url": endpoint,
         "method": "POST",
-        "schedule": cron  # e.g. "0 8 * * *"
+        "schedule": cron  # e.g. "* * * * *"
     }
     res = requests.post(BASE_URL, headers=headers, json=body)
     return res.json()
