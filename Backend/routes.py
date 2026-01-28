@@ -1129,33 +1129,34 @@ task_results = {}
 
 CSV_STORAGE_DIR = "csv_exports"
 os.makedirs(CSV_STORAGE_DIR, exist_ok=True)
-
-# ----------------- Worker route: generates CSV and sends email -----------------
+class ExportCSVRequest(BaseModel):
+    patient_id: int
+    patient_email: EmailStr
+    task_id: str # task_id from QStash trigger
+# # ----------------- Worker route: generates CSV and sends email -----------------
 # @app.post("/export-csv")
 # def export_csv_job(
-#     patient_id: int = Body(...), 
-#     patient_email: str = Body(...),
-#     task_id: str = Body(...),  # task_id from QStash trigger
+#     payload: ExportCSVRequest,
 #     session: Session = Depends(get_session)
 # ):
 #     """Generate CSV of a patient's treatments, email it, and store for download."""
-#     task_results[task_id] = {"status": "pending", "filename": None}
+#     task_results[payload.task_id] = {"status": "pending", "filename": None}
 #     try:
-#         patient = session.query(Patient).filter(Patient.id == patient_id).first()
+#         patient = session.query(Patient).filter(Patient.id == payload.patient_id).first()
 #         if not patient:
-#             task_results[task_id]["status"] = "failed"
+#             task_results[payload.task_id]["status"] = "failed"
 #             raise HTTPException(status_code=404, detail="Patient not found")
 
 #         appointments = session.query(Appointment).filter(
-#             Appointment.patient_id == patient_id
+#             Appointment.patient_id == payload.patient_id
 #         ).all()
 
 #         if not appointments:
-#             task_results[task_id]["status"] = "completed"
+#             task_results[payload.task_id]["status"] = "completed"
 #             return {"message": "No treatment records found"}
 
 #         # Build CSV
-#         filename = f"treatments_{patient_id}_{task_id}.csv"
+#         filename = f"treatments_{payload.patient_id}_{payload.task_id}.csv"
 #         filepath = os.path.join(CSV_STORAGE_DIR, filename)
 
 #         with open(filepath, "w", newline="") as csvfile:
@@ -1187,47 +1188,130 @@ os.makedirs(CSV_STORAGE_DIR, exist_ok=True)
 #         print(f"[FAIL] Task {task_id}: {e}")
 #         raise HTTPException(status_code=500, detail=str(e))
 @app.post("/export-csv")
-async def export_csv_job(request: Request):
-    raw = await request.json()
-    print("RAW BODY FROM QSTASH:", raw)
+def export_csv_job(
+    payload: ExportCSVRequest,
+    session: Session = Depends(get_session)
+):
+    """Generate CSV of a patient's treatments, email it, and store for download."""
+    
+    task_results[payload.task_id] = {"status": "pending", "filename": None}
+
+    try:
+        patient = session.query(Patient).filter(
+            Patient.id == payload.patient_id
+        ).first()
+
+        if not patient:
+            task_results[payload.task_id]["status"] = "failed"
+            raise HTTPException(status_code=404, detail="Patient not found")
+
+        appointments = session.query(Appointment).filter(
+            Appointment.patient_id == payload.patient_id
+        ).all()
+
+        if not appointments:
+            task_results[payload.task_id]["status"] = "completed"
+            return {"message": "No treatment records found"}
+
+        # Build CSV
+        filename = f"treatments_{payload.patient_id}_{payload.task_id}.csv"
+        filepath = os.path.join(CSV_STORAGE_DIR, filename)
+
+        with open(filepath, "w", newline="") as csvfile:
+            writer = csv.DictWriter(
+                csvfile,
+                fieldnames=["Doctor", "Date", "Diagnosis/Notes", "Treatment"]
+            )
+            writer.writeheader()
+            for a in appointments:
+                writer.writerow({
+                    "Doctor": a.doctor.user.username,
+                    "Date": a.appointment_date,
+                    "Diagnosis/Notes": a.notes or "",
+                    "Treatment": a.notes or "",
+                })
+
+        # Send email
+        csv_bytes = open(filepath, "rb").read()
+        send_email(payload.patient_email, csv_bytes, filename)
+
+        # Update task result
+        task_results[payload.task_id] = {
+            "status": "completed",
+            "filename": filename
+        }
+
+        print(
+            f"[OK] CSV sent to {payload.patient_email} "
+            f"and stored as {filename}"
+        )
+
+        return {"message": f"CSV sent to {payload.patient_email}"}
+
+    except Exception as e:
+        task_results[payload.task_id]["status"] = "failed"
+        print(f"[FAIL] Task {payload.task_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# @app.post("/export-csv")
+# async def export_csv_job(request: Request):
+#     raw = await request.json()
+#     print("RAW BODY FROM QSTASH:", raw)
 
 # ----------------- Trigger route: admin clicks button -----------------
-@app.post("/trigger-export")
+# @app.post("/trigger-export")
 async def trigger_export(request: Request):
     """
     Admin clicks button → send request to QStash → QStash calls /export-csv asynchronously.
     """
     body = await request.json()
-    task_id = str(uuid.uuid4())  # generate a unique ID for tracking
+
+    # ✅ Validate input early
+    if "patient_id" not in body or "patient_email" not in body:
+        raise HTTPException(
+            status_code=400,
+            detail="patient_id and patient_email are required"
+        )
+
+    if not body["patient_email"]:
+        raise HTTPException(
+            status_code=400,
+            detail="patient_email cannot be empty"
+        )
+
+    task_id = str(uuid.uuid4())
     task_results[task_id] = {"status": "pending", "filename": None}
+
     print(f"[INFO] Queuing CSV export task: {task_id}")
-    QSTASH_TOKEN="eyJVc2VySUQiOiJmODlhM2Q5Ni1lMDIxLTQzZWUtYTU1OS0xODEyNjA4MGY1ZjgiLCJQYXNzd29yZCI6IjMzMjNlMzRmMjc2YTRkZDY5ZGYyNjIwYzE3NWJjZDJlIn0="
-    # async with httpx.AsyncClient() as client:
-    #     res = await client.post(
-    #         "https://qstash.upstash.io/v2/publish",
-    #         headers={"Authorization": f"Bearer {(QSTASH_TOKEN)}"},
-    #         json={
-    #             "url": "https://fastapi-6mjn.onrender.com/export-csv",
-    #             "method": "POST",
-    #             "body": {**body, "task_id": task_id}  # pass task_id to worker
-    #         }
-    #     )
+
+    # 🔐 Token remains HERE (as you requested)
+    QSTASH_TOKEN = "eyJVc2VySUQiOiJmODlhM2Q5Ni1lMDIxLTQzZWUtYTU1OS0xODEyNjA4MGY1ZjgiLCJQYXNzd29yZCI6IjMzMjNlMzRmMjc2YTRkZDY5ZGYyNjIwYzE3NWJjZDJlIn0="
+
     DESTINATION_URL = "https://fastapi-6mjn.onrender.com/export-csv"
 
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=10) as client:
         res = await client.post(
             f"https://qstash.upstash.io/v2/publish/{DESTINATION_URL}",
             headers={
-                "Authorization": f"Bearer {(QSTASH_TOKEN)}",
+                "Authorization": f"Bearer {QSTASH_TOKEN}",
+                "Content-Type": "application/json",
             },
-            json={**body, "task_id": task_id},
+            json={
+                "patient_id": body["patient_id"],
+                "patient_email": body["patient_email"],
+                "task_id": task_id,
+            },
         )
+
     if res.status_code != 200:
         task_results[task_id]["status"] = "failed"
-        return {"task_id": task_id, "status": "failed to queue", "details": res.text}
+        return {
+            "task_id": task_id,
+            "status": "failed to queue",
+            "details": res.text,
+        }
 
     return {"task_id": task_id, "status": "queued"}
-
 
 # ----------------- Status route: check CSV export status -----------------
 @app.get("/csv-status/{task_id}")
