@@ -1265,6 +1265,7 @@ async def trigger_export(request: Request):
     Admin clicks button → send request to QStash → QStash calls /export-csv asynchronously.
     """
     body = await request.json()
+    print("RAW BODY:", body)
 
     # ✅ Validate input early
     if "patient_id" not in body or "patient_email" not in body:
