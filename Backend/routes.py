@@ -1259,7 +1259,7 @@ def export_csv_job(
 #     print("RAW BODY FROM QSTASH:", raw)
 
 # ----------------- Trigger route: admin clicks button -----------------
-# @app.post("/trigger-export")
+@app.post("/trigger-export")
 async def trigger_export(request: Request):
     """
     Admin clicks button → send request to QStash → QStash calls /export-csv asynchronously.
