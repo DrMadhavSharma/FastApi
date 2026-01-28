@@ -69,16 +69,24 @@ def login_page(user: Login, db: Session = Depends(get_session)):
     if not db_user:
         raise HTTPException(status_code=404, detail="Invalid email or password")
 
-    # Generate JWT token with role info
     access_token_expires = timedelta(minutes=30)
-    access_token = create_access_token(
-    data={"sub": db_user.username, "email": db_user.email, "roles": [db_user.role.value]}
-    ,expires_delta=access_token_expires)
 
+    access_token = create_access_token(
+        data={
+            "sub": db_user.username,
+            "user_id": db_user.id,          # ✅ HERE
+            "email": db_user.email,
+            "roles": [db_user.role.value]
+        },
+        expires_delta=access_token_expires
+    )
+    print(db_user,"data")
     return {
         "access_token": access_token,
         "token_type": "bearer",
-        "role": db_user.role.value
+        "email": db_user.email,
+        "role": db_user.role.value,
+        "user_id": db_user.id              # optional but useful
     }
 
 # ----------------------

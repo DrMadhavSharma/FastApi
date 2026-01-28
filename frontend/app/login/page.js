@@ -1,5 +1,6 @@
 "use client";
-import { useState } from "react";
+import { useContext, useState } from "react";
+import { UserContext } from "../context/UserContext";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -7,7 +8,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const isValid = email.includes("@") && password.length ;
-
+  const {user,setUser} = useContext(UserContext)
   async function handleSubmit(e) {
     e.preventDefault();
     setLoading(true);
@@ -23,11 +24,17 @@ export default function LoginPage() {
         throw new Error(data.detail || "Login failed");
       }
       const data = await res.json();
+      console.log(data);
+      
       if (typeof window !== "undefined") {
         localStorage.setItem("access_token", data.access_token);
         localStorage.setItem("role", data.role);
         
       }
+      setUser({
+        email : data?.email ?? "",
+        id : data?.user_id ?? ""
+      })
       // Simple redirect based on role
       const role = data.role;
       if (role === "doctor") {

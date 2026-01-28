@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
+import { UserContext } from "../../context/UserContext";
 
 
 export default function PatientDashboard() {
-  const [user, setUser] = useState({ name: "Patient" });
+  // const [user, setUser] = useState({ name: "Patient" });
   const [appointments, setAppointments] = useState([]);
   const [doctors, setDoctors] = useState([]);
   const [specializations, setSpecializations] = useState([]);
@@ -13,7 +14,7 @@ export default function PatientDashboard() {
   const [loading, setLoading] = useState(true);
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [patients, setPatients] = useState([]); // Fetch from backend if needed
-
+const {user} = useContext(UserContext)
   const [booking, setBooking] = useState({
     doctor_id: "",
     appointment_date: "",
@@ -48,8 +49,8 @@ async function triggerCsvExport() {
         "Authorization": `Bearer ${token}` 
       },
       body: JSON.stringify({
-        patient_id: profile.id,
-        patient_email: profile.email
+        patient_id: user.id,
+        patient_email: user.email
       })
     });
 
