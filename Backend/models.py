@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Annotated
 from fastapi import Depends, HTTPException, Query
 from sqlmodel import Field, Session, SQLModel, create_engine, select 
-from config import pwd_context
+from .config import pwd_context
 # Database credentials
 user = "postgres.dokiquodoqrslfrfofxk"
 password = "Quizdb2754"

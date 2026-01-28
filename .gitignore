@@ -1,4 +1,40 @@
-/.venv
-/__pycache__
-node_modules
-.next
+# --------------------
+# Python cache files
+# --------------------
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.cpython-*
+
+# --------------------
+# Virtual environment
+# --------------------
+venv/
+.env/
+
+# --------------------
+# Logs
+# --------------------
+*.log
+
+# --------------------
+# OS files
+# --------------------
+.DS_Store
+Thumbs.db
+
+# --------------------
+# Node / Frontend
+# --------------------
+node_modules/
+.next/
+out/
+dist/
+
+# --------------------
+# IDE
+# --------------------
+.vscode/
+.idea/
+Backend/__pycache__/__init__.cpython-312.pyc

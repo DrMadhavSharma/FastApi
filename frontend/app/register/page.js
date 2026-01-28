@@ -34,8 +34,8 @@ export default function RegisterPage() {
     try {
       const isDoctor = role === "doctor";
       const endpoint = isDoctor
-        ? "https://fastapi-6mjn.onrender.com/register/doctor"
-        : "https://fastapi-6mjn.onrender.com/register/patient";
+        ? "http://127.0.0.1:8000/register/doctor"
+        : "http://127.0.0.1:8000/register/patient";
 
       const payload = isDoctor
         ? {

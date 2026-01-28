@@ -1,13 +1,13 @@
-from main import app
+from .main import app
 from typing import Annotated
 from datetime import datetime, timedelta, timezone
 from starlette.responses import RedirectResponse
-from config import hash_password,verify_password
+from .config import hash_password,verify_password
 from fastapi import Depends, HTTPException
 from sqlmodel import  Session, select 
-from models import * 
-from pydantic_models import *
-from config import create_access_token , verify_token , get_current_user
+from .models import * 
+from .pydantic_models import *
+from .config import create_access_token , verify_token , get_current_user
 from sqlalchemy import func
 import json
 from dateutil import parser
@@ -124,7 +124,7 @@ def admin_search(q: str, user=Depends(get_current_user), db: Session = Depends(g
         "patients": [{"id": p.id, "user_id": p.user_id, "age": p.age} for p in patients]
     }
 
-from pydantic_models import DoctorUpdate, PatientUpdate
+from .pydantic_models import DoctorUpdate, PatientUpdate
 
 @app.post("/admin/doctors")
 def admin_add_doctor(doctor: DoctorCR, user=Depends(get_current_user), db: Session = Depends(get_session)):
@@ -715,16 +715,16 @@ def update_availability(
     return {"message": "Availability updated successfully", "availability": days}
 
 
-from main import app
+from .main import app
 from typing import Annotated
 from datetime import datetime, timedelta
 from fastapi import Depends, HTTPException
 from sqlmodel import Session, select
 from sqlalchemy import func
 
-from models import *
-from pydantic_models import *
-from config import create_access_token, verify_token, get_current_user, hash_password
+from .models import *
+from .pydantic_models import *
+from .config import create_access_token, verify_token, get_current_user, hash_password
 from pydantic import BaseModel, EmailStr
 
 
@@ -733,7 +733,7 @@ def authenticate_user(db: Session, email: str, password: str):
     db_user = db.execute(stmt).scalar_one_or_none()
     if not db_user:
         return None
-    from config import verify_password as _verify
+    from .config import verify_password as _verify
     if not _verify(password, db_user.password):
         return None
     return db_user
@@ -1108,23 +1108,6 @@ def patient_cancel(appointment_id: int, user=Depends(get_current_user), db: Sess
     db.add(appt); db.commit()
     return {"status": "canceled"}
 ##################################################################################3
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
-from models import get_session
-from models import Doctor, Appointment
-from utils.email_utils import send_email
-from datetime import date
-import calendar
-from main import app
-from fastapi import APIRouter, Depends, Body, HTTPException, Request
-from sqlalchemy.orm import Session
-from models import get_session
-from models import Appointment, Patient
-from utils.email_utils import send_csv_email
-import csv, io
-from main import app
-import httpx
-import os
 
 
 import os
@@ -1135,10 +1118,10 @@ import httpx
 from fastapi import FastAPI, Body, Request, Depends, HTTPException
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
-from models import get_session, Patient, Appointment
-from utils.email_utils import send_csv_email
+from .models import get_session, Patient, Appointment
+from .utils.email_utils import send_email
 
-app = FastAPI()
+# app = FastAPI()
 
 # ----------------- In-memory task tracking -----------------
 # Each task_id maps to a dict: {"status": "pending|completed|failed", "filename": str}
@@ -1191,7 +1174,7 @@ def export_csv_job(
 
         # Send email
         csv_bytes = open(filepath, "rb").read()
-        send_csv_email(patient_email, csv_bytes, filename)
+        send_email(patient_email, csv_bytes, filename)
 
         # Update task result
         task_results[task_id] = {"status": "completed", "filename": filename}
@@ -1215,18 +1198,27 @@ async def trigger_export(request: Request):
     task_id = str(uuid.uuid4())  # generate a unique ID for tracking
     task_results[task_id] = {"status": "pending", "filename": None}
     print(f"[INFO] Queuing CSV export task: {task_id}")
+    QSTASH_TOKEN="eyJVc2VySUQiOiJmODlhM2Q5Ni1lMDIxLTQzZWUtYTU1OS0xODEyNjA4MGY1ZjgiLCJQYXNzd29yZCI6IjMzMjNlMzRmMjc2YTRkZDY5ZGYyNjIwYzE3NWJjZDJlIn0="
+    # async with httpx.AsyncClient() as client:
+    #     res = await client.post(
+    #         "https://qstash.upstash.io/v2/publish",
+    #         headers={"Authorization": f"Bearer {(QSTASH_TOKEN)}"},
+    #         json={
+    #             "url": "http://127.0.0.1:8000/export-csv",
+    #             "method": "POST",
+    #             "body": {**body, "task_id": task_id}  # pass task_id to worker
+    #         }
+    #     )
+    DESTINATION_URL = "http://127.0.0.1:8000/export-csv"
 
     async with httpx.AsyncClient() as client:
         res = await client.post(
-            "https://qstash.upstash.io/v1/publish",
-            headers={"Authorization": f"Bearer {os.getenv('QSTASH_TOKEN')}"},
-            json={
-                "url": "https://fastapi-6mjn.onrender.com/export-csv",
-                "method": "POST",
-                "body": {**body, "task_id": task_id}  # pass task_id to worker
-            }
+            f"https://qstash.upstash.io/v2/publish/{DESTINATION_URL}",
+            headers={
+                "Authorization": f"Bearer {(QSTASH_TOKEN)}",
+            },
+            json={**body, "task_id": task_id},
         )
-
     if res.status_code != 200:
         task_results[task_id]["status"] = "failed"
         return {"task_id": task_id, "status": "failed to queue", "details": res.text}
@@ -1294,7 +1286,7 @@ def monthly_report_job(session: Session = Depends(get_session)):
 
     return {"message": f"Monthly reports sent to {sent_count} doctors"}
 
-from utils.qstash_utils import schedule_job
+from .utils.qstash_utils import schedule_job
 import os
 
 BACKEND_URL = os.getenv("BACKEND_URL","https://fastapi-6mjn.onrender.com")

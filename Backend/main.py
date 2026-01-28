@@ -2,11 +2,11 @@ from typing import Annotated
 
 from fastapi import Depends, FastAPI
 from fastapi.security import OAuth2PasswordBearer
-from models import *
+from .models import *
 app = FastAPI()
 # from routes import *
 from fastapi.middleware.cors import CORSMiddleware
-from config import hash_password
+from .config import hash_password
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -18,9 +18,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from routes import *
+from .routes import *
   # noqa: E402
-from utils import *
+from .utils import *
 
 # oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 # from typing import Annotated
@@ -51,7 +51,7 @@ def on_startup():
     # Ensure admin exists
     with Session(engine) as db:
         from sqlalchemy import select
-        from models import User, RoleEnum
+        from .models import User, RoleEnum
         existing = db.execute(select(User).where(User.role == RoleEnum.admin)).scalar_one_or_none()
         if not existing:
             admin_user = User(
@@ -64,7 +64,7 @@ def on_startup():
             db.add(admin_user)
             db.commit()
 
-from routes import *  # noqa: E402
+from .routes import *  # noqa: E402
 
 
 
@@ -78,7 +78,7 @@ def on_startup():
    # Ensure one admin user exists (idempotent)
    with Session(engine) as db:
        from sqlalchemy import select
-       from models import User, RoleEnum
+       from .models import User, RoleEnum
        existing = db.execute(select(User).where(User.role == RoleEnum.admin)).scalar_one_or_none()
        if not existing:
            admin_user = User(
