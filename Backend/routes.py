@@ -1240,8 +1240,14 @@ def export_csv_job(
                 })
 
         # Send email
-        csv_bytes = open(filepath, "rb").read()
-        send_email(payload.patient_email, csv_bytes, filename)
+        send_email(
+    to_address=payload.patient_email,
+    subject="Your Treatment Records",
+    message="Please find your treatment records attached.",
+    content="html",
+    attachment_file=filepath
+)
+
 
         # Update task result
         task_results[payload.task_id] = {
