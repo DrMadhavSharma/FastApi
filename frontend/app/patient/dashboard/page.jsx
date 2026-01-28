@@ -58,7 +58,7 @@ async function triggerCsvExport() {
       },
       body: JSON.stringify({
         patient_id: deta.patient_id,
-        patient_email: user.email
+        patient_email: deta.email
       })
     });
 

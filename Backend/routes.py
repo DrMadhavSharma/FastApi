@@ -1460,6 +1460,8 @@ def get_my_patient_id(
         )
 
     return {
-        "patient_id": patient.id
+        "patient_id": patient.id,
+        "patient_email": email
+
     }
 
