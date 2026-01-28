@@ -9,7 +9,7 @@ export default function HomePage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch("http://127.0.0.1:8000/", {
+        const res = await fetch("https://fastapi-6mjn.onrender.com/", {
           method: "GET",
           headers: { "Content-Type": "application/json" },
         });
