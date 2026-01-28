@@ -41,7 +41,15 @@ async function triggerCsvExport() {
 
     const token = localStorage.getItem("access_token");
     if (!token) throw new Error("No token found");
-
+    const patientRes = await fetch(
+      "https://fastapi-6mjn.onrender.com/patient/me",
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    const deta = await patientRes.json();
     const res = await fetch(`https://fastapi-6mjn.onrender.com/trigger-export`, {
       method: "POST",
       headers: { 
@@ -49,7 +57,7 @@ async function triggerCsvExport() {
         "Authorization": `Bearer ${token}` 
       },
       body: JSON.stringify({
-        patient_id: user.id,
+        patient_id: deta.patient_id,
         patient_email: user.email
       })
     });

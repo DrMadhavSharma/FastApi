@@ -1429,4 +1429,22 @@ def daily_reminder_job(session: Session = Depends(get_session)):
         "message": f"{len(appointments)} reminders sent",
         "sent_to": sent_emails
     }
+@app.get("/patient/me")
+def get_my_patient_id(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_session)
+):
+    patient = db.query(Patient).filter(
+        Patient.user_id == current_user.id
+    ).first()
+
+    if not patient:
+        raise HTTPException(
+            status_code=404,
+            detail="Patient profile not found for this user"
+        )
+
+    return {
+        "patient_id": patient.id
+    }
 
