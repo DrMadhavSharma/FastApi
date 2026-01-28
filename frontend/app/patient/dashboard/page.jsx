@@ -50,6 +50,8 @@ async function triggerCsvExport() {
       }
     );
     const deta = await patientRes.json();
+    console.log(deta);
+    
     const res = await fetch(`https://fastapi-6mjn.onrender.com/trigger-export`, {
       method: "POST",
       headers: { 
@@ -58,7 +60,7 @@ async function triggerCsvExport() {
       },
       body: JSON.stringify({
         patient_id: deta.patient_id,
-        patient_email: deta.email
+        patient_email: deta.patient_email
       })
     });
 
