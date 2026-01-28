@@ -1131,62 +1131,65 @@ CSV_STORAGE_DIR = "csv_exports"
 os.makedirs(CSV_STORAGE_DIR, exist_ok=True)
 
 # ----------------- Worker route: generates CSV and sends email -----------------
+# @app.post("/export-csv")
+# def export_csv_job(
+#     patient_id: int = Body(...), 
+#     patient_email: str = Body(...),
+#     task_id: str = Body(...),  # task_id from QStash trigger
+#     session: Session = Depends(get_session)
+# ):
+#     """Generate CSV of a patient's treatments, email it, and store for download."""
+#     task_results[task_id] = {"status": "pending", "filename": None}
+#     try:
+#         patient = session.query(Patient).filter(Patient.id == patient_id).first()
+#         if not patient:
+#             task_results[task_id]["status"] = "failed"
+#             raise HTTPException(status_code=404, detail="Patient not found")
+
+#         appointments = session.query(Appointment).filter(
+#             Appointment.patient_id == patient_id
+#         ).all()
+
+#         if not appointments:
+#             task_results[task_id]["status"] = "completed"
+#             return {"message": "No treatment records found"}
+
+#         # Build CSV
+#         filename = f"treatments_{patient_id}_{task_id}.csv"
+#         filepath = os.path.join(CSV_STORAGE_DIR, filename)
+
+#         with open(filepath, "w", newline="") as csvfile:
+#             writer = csv.DictWriter(
+#                 csvfile,
+#                 fieldnames=["Doctor", "Date", "Diagnosis/Notes", "Treatment"]
+#             )
+#             writer.writeheader()
+#             for a in appointments:
+#                 writer.writerow({
+#                     "Doctor": a.doctor.user.username,
+#                     "Date": a.appointment_date,
+#                     "Diagnosis/Notes": a.notes or "",
+#                     "Treatment": a.notes or "",
+#                 })
+
+#         # Send email
+#         csv_bytes = open(filepath, "rb").read()
+#         send_email(patient_email, csv_bytes, filename)
+
+#         # Update task result
+#         task_results[task_id] = {"status": "completed", "filename": filename}
+#         print(f"[OK] CSV sent to {patient_email} and stored as {filename}")
+
+#         return {"message": f"CSV sent to {patient_email}"}
+
+#     except Exception as e:
+#         task_results[task_id]["status"] = "failed"
+#         print(f"[FAIL] Task {task_id}: {e}")
+#         raise HTTPException(status_code=500, detail=str(e))
 @app.post("/export-csv")
-def export_csv_job(
-    patient_id: int = Body(...), 
-    patient_email: str = Body(...),
-    task_id: str = Body(...),  # task_id from QStash trigger
-    session: Session = Depends(get_session)
-):
-    """Generate CSV of a patient's treatments, email it, and store for download."""
-    task_results[task_id] = {"status": "pending", "filename": None}
-    try:
-        patient = session.query(Patient).filter(Patient.id == patient_id).first()
-        if not patient:
-            task_results[task_id]["status"] = "failed"
-            raise HTTPException(status_code=404, detail="Patient not found")
-
-        appointments = session.query(Appointment).filter(
-            Appointment.patient_id == patient_id
-        ).all()
-
-        if not appointments:
-            task_results[task_id]["status"] = "completed"
-            return {"message": "No treatment records found"}
-
-        # Build CSV
-        filename = f"treatments_{patient_id}_{task_id}.csv"
-        filepath = os.path.join(CSV_STORAGE_DIR, filename)
-
-        with open(filepath, "w", newline="") as csvfile:
-            writer = csv.DictWriter(
-                csvfile,
-                fieldnames=["Doctor", "Date", "Diagnosis/Notes", "Treatment"]
-            )
-            writer.writeheader()
-            for a in appointments:
-                writer.writerow({
-                    "Doctor": a.doctor.user.username,
-                    "Date": a.appointment_date,
-                    "Diagnosis/Notes": a.notes or "",
-                    "Treatment": a.notes or "",
-                })
-
-        # Send email
-        csv_bytes = open(filepath, "rb").read()
-        send_email(patient_email, csv_bytes, filename)
-
-        # Update task result
-        task_results[task_id] = {"status": "completed", "filename": filename}
-        print(f"[OK] CSV sent to {patient_email} and stored as {filename}")
-
-        return {"message": f"CSV sent to {patient_email}"}
-
-    except Exception as e:
-        task_results[task_id]["status"] = "failed"
-        print(f"[FAIL] Task {task_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
+async def export_csv_job(request: Request):
+    raw = await request.json()
+    print("RAW BODY FROM QSTASH:", raw)
 
 # ----------------- Trigger route: admin clicks button -----------------
 @app.post("/trigger-export")
