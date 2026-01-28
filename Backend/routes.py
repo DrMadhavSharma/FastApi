@@ -1431,11 +1431,26 @@ def daily_reminder_job(session: Session = Depends(get_session)):
     }
 @app.get("/patient/me")
 def get_my_patient_id(
-    current_user: User = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_session)
 ):
+    print("Current User:", current_user)
+
+    # 1️⃣ Get email from token payload
+    email = current_user.get("email")
+
+    if not email:
+        raise HTTPException(status_code=401, detail="Invalid token payload")
+
+    # 2️⃣ Find User using email
+    user = db.query(User).filter(User.email == email).first()
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # 3️⃣ Find Patient using user.id
     patient = db.query(Patient).filter(
-        Patient.user_id == current_user.id
+        Patient.user_id == user.id
     ).first()
 
     if not patient:
