@@ -2,6 +2,7 @@ from typing import Annotated
 
 from fastapi import Depends, FastAPI
 from fastapi.security import OAuth2PasswordBearer
+from sqlmodel import Session, select
 from models import *
 app = FastAPI()
 # from routes import *
