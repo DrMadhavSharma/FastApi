@@ -1,0 +1,68 @@
+[33m081e335[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m ok
+[33m0dbb827[m updated the doctors monthly reports endpoint
+[33m691cb9a[m[33m ([m[1;31morigin/main[m[33m)[m Updated Monthly report ,send_email arguements.
+[33mafdd193[m Added calendar and date imports
+[33ma48d25a[m ss
+[33m9e85e22[m ss
+[33m3af0532[m s
+[33m24a60ef[m nn
+[33mf2c73ff[m one more bug caught
+[33mffb1e53[m ok fixed minor bugs
+[33m0894df6[m print("RAW BODY:", body)
+[33m3f43efe[m ok
+[33m55036f4[m changed rigger_task with export task
+[33me00701d[m getting raw
+[33mcd32634[m ewplaced local host with public  and from . to from
+[33md44e689[m first try
+[33ma1ad99e[m[33m ([m[1;32mmaster[m[33m)[m Initial commit
+[33mbb261ca[m ok
+[33m4424e3e[m o3
+[33m0df9138[m o3
+[33m40343ed[m o2
+[33m9044c43[m o
+[33mbb9a498[m ok
+[33m1ee7370[m ok
+[33m1166eda[m ok
+[33md4f6fad[m ok
+[33meff49a7[m ok
+[33m9233c0c[m ok
+[33m67a7647[m ok
+[33mf5b1037[m ok
+[33mf7e6c67[m ok
+[33m8d30f50[m ok
+[33ma504321[m ok
+[33m4dbaaa9[m ok
+[33m33e4573[m Integrated btn in ui
+[33mae5371c[m integrated upstash qstash
+[33md6cb4fe[m crcted mistake
+[33me2a003a[m ok3
+[33m1c9eb70[m ok2
+[33ma9e0702[m ok
+[33mcd49b56[m some
+[33m17f6a28[m some
+[33m0478b60[m Updated frontend :SET the fied to req in patient update form
+[33m4313c53[m CORS
+[33m6e19cb3[m CORS
+[33md0d3ee4[m url
+[33mc996718[m Update login API endpoint to external URL
+[33m5b9eed4[m Update fetch URL to use external API endpoint
+[33mde040d4[m Change API endpoints to relative paths
+[33m4b470b0[m deploy
+[33mc0cf0bc[m deploy
+[33m46cdaed[m rel
+[33m636279a[m rel
+[33m55b396c[m routes corrected
+[33m867d73f[m rel
+[33mbb96870[m rel
+[33m4fa492a[m relative
+[33m49b2cb5[m Modified
+[33m2e5fc2d[m again
+[33mc27587c[m again at  129
+[33m3701849[m removed rel path routes.py
+[33ma14b2b6[m removed relative path
+[33mf1345cb[m added req.txt
+[33m8121b0a[m doctor ,patient,admin done
+[33m14c2c4e[m added patient with all it goals
+[33mf78389d[m updated routes and added frontend
+[33m9eb379f[m updated routes
+[33mb38d6bf[m first commit
