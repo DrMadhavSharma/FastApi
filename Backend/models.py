@@ -2,7 +2,7 @@ from sqlmodel import Field, SQLModel, Relationship, create_engine, Session
 from sqlalchemy import ForeignKey
 from datetime import datetime
 from typing import Annotated
-from fastapi import Depends, HTTPException, exec
+from fastapi import Depends, HTTPException
 from sqlmodel import Field, Session, SQLModel, create_engine, select 
 from config import pwd_context
 # Database credentials
