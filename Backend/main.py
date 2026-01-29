@@ -2,7 +2,6 @@ from typing import Annotated
 
 from fastapi import Depends, FastAPI
 from fastapi.security import OAuth2PasswordBearer
-from sqlmodel import Session, select
 from models import *
 app = FastAPI()
 # from routes import *
@@ -53,7 +52,7 @@ def on_startup():
     with Session(engine) as db:
         from sqlalchemy import select
         from models import User, RoleEnum
-        existing = db.exec(select(User).where(User.role == RoleEnum.admin)).scalar_one_or_none()
+        existing = db.execute(select(User).where(User.role == RoleEnum.admin)).scalar_one_or_none()
         if not existing:
             admin_user = User(
                 username="admin",
@@ -80,7 +79,7 @@ def on_startup():
    with Session(engine) as db:
        from sqlalchemy import select
        from models import User, RoleEnum
-       existing = db.exec(select(User).where(User.role == RoleEnum.admin)).scalar_one_or_none()
+       existing = db.execute(select(User).where(User.role == RoleEnum.admin)).scalar_one_or_none()
        if not existing:
            admin_user = User(
                username="admin",
