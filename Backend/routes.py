@@ -1350,6 +1350,8 @@ def download_csv(task_id: str):
 
     return FileResponse(filepath, filename=task["filename"], media_type="text/csv")
 
+from datetime import date
+import calendar
 
 @app.post("/monthly-report")
 def monthly_report_job(session: Session = Depends(get_session)):
@@ -1429,6 +1431,7 @@ def daily_reminder_job(session: Session = Depends(get_session)):
         "message": f"{len(appointments)} reminders sent",
         "sent_to": sent_emails
     }
+#############################Below Route Provides The Patient ID of Logged In Patient using user id#############################
 @app.get("/patient/me")
 def get_my_patient_id(
     current_user: dict = Depends(get_current_user),
