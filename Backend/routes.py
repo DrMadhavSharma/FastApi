@@ -15,10 +15,10 @@ from typing import List, Dict
 import pytz
 def enforce_user_limit(db: Session):
     MAX_ACTIVE_USERS = 500
-    total_active = db.query(User).filter(User.is_active==True).count()
+    total_active = db.exec(User).filter(User.is_active==True).count()
     if total_active >= MAX_ACTIVE_USERS:
         # mark oldest active users as inactive
-        to_deactivate = db.query(User)\
+        to_deactivate = db.exec(User)\
                           .filter(User.is_active==True)\
                           .order_by(User.id.asc())\
                           .limit(total_active - MAX_ACTIVE_USERS + 1)\
@@ -37,7 +37,7 @@ def require_admin(user):
         raise HTTPException(status_code=403, detail="Admin only")
 def authenticate_user(db: Session,email: str, password: str):
         stmt = select(User).where(User.email == email)
-        db_user = db.execute(stmt).scalar_one_or_none()
+        db_user = db.exec(stmt).scalar_one_or_none()
 
         if not db_user:
             return None
@@ -53,10 +53,10 @@ def index_page():
 #     db_user=authenticate_user(db , user.email, user.password)
 #     if db_user:
 #         if db_user.role == RoleEnum.doctor:
-#             # doctor =db.execute(select(Doctor).where(Doctor.user_id==db_user.id)).scalar_one_or_none()
+#             # doctor =db.exec(select(Doctor).where(Doctor.user_id==db_user.id)).scalar_one_or_none()
 #             return RedirectResponse(url=f"/dashboard/Doctor/{db_user.id}", status_code=302) 
 #         elif db_user.role == RoleEnum.patient:
-#             # patient = db.execute(select(Patient).where(Patient.user_id==db_user.id)).scalar_one_or_none()
+#             # patient = db.exec(select(Patient).where(Patient.user_id==db_user.id)).scalar_one_or_none()
 #             return RedirectResponse(url=f"/dashboard/Patient/{db_user.id}", status_code=302) 
 #     else:
 #         raise HTTPException(status_code=404, detail="Invalid email or password")
@@ -95,9 +95,9 @@ def login_page(user: Login, db: Session = Depends(get_session)):
 @app.get("/admin/summary")
 def admin_summary(user=Depends(get_current_user), db: Session = Depends(get_session)):
     require_admin(user)
-    total_doctors = db.query(func.count(Doctor.id)).scalar() or 0
-    total_patients = db.query(func.count(Patient.id)).scalar() or 0
-    total_appointments = db.query(func.count(Appointment.id)).scalar() or 0
+    total_doctors = db.exec(func.count(Doctor.id)).scalar() or 0
+    total_patients = db.exec(func.count(Patient.id)).scalar() or 0
+    total_appointments = db.exec(func.count(Appointment.id)).scalar() or 0
     return {
         "doctors": total_doctors,
         "patients": total_patients,
@@ -107,7 +107,7 @@ def admin_summary(user=Depends(get_current_user), db: Session = Depends(get_sess
 @app.get("/admin/appointments")
 def admin_list_appointments(user=Depends(get_current_user), db: Session = Depends(get_session)):
     require_admin(user)
-    appts = db.query(Appointment).order_by(Appointment.appointment_date.desc()).all()
+    appts = db.exec(Appointment).order_by(Appointment.appointment_date.desc()).all()
     result = []
     for a in appts:
         result.append({
@@ -120,24 +120,80 @@ def admin_list_appointments(user=Depends(get_current_user), db: Session = Depend
         })
     return result
 
+from sqlalchemy import or_
+
 @app.get("/admin/search")
-def admin_search(q: str, user=Depends(get_current_user), db: Session = Depends(get_session)):
+def admin_search(
+    q: str,
+    user=Depends(get_current_user),
+    db: Session = Depends(get_session),
+):
     require_admin(user)
-    users = db.execute(select(User).where(User.username.ilike(f"%{q}%"))).scalars().all()
-    doctors = db.execute(select(Doctor).join(User).where(User.username.ilike(f"%{q}%"))).scalars().all()
-    patients = db.execute(select(Patient).join(User).where(User.username.ilike(f"%{q}%"))).scalars().all()
-    return {
-        "users": [{"id": u.id, "username": u.username, "email": u.email, "role": u.role.value, "is_active": u.is_active} for u in users],
-        "doctors": [{"id": d.id, "user_id": d.user_id, "specialization": d.specialization} for d in doctors],
-        "patients": [{"id": p.id, "user_id": p.user_id, "age": p.age} for p in patients]
-    }
+
+    users = db.exec(
+        select(User).where(
+            or_(
+                User.username.ilike(f"%{q}%"),
+                User.email.ilike(f"%{q}%"),
+            )
+        )
+    ).scalars().all()
+
+    doctors = db.exec(
+        select(Doctor).join(User).where(
+            or_(
+                User.username.ilike(f"%{q}%"),
+                User.email.ilike(f"%{q}%"),
+            )
+        )
+    ).scalars().all()
+
+    patients = db.exec(
+        select(Patient).join(User).where(
+            or_(
+                User.username.ilike(f"%{q}%"),
+                User.email.ilike(f"%{q}%"),
+            )
+        )
+    ).scalars().all()
+
+    results = []
+
+    for u in users:
+        results.append({
+            "type": "user",
+            "id": u.id,
+            "username": u.username,
+            "email": u.email,
+            "role": u.role.value,
+            "is_active": u.is_active,
+        })
+
+    for d in doctors:
+        results.append({
+            "type": "doctor",
+            "id": d.id,
+            "user_id": d.user_id,
+            "specialization": d.specialization,
+        })
+
+    for p in patients:
+        results.append({
+            "type": "patient",
+            "id": p.id,
+            "user_id": p.user_id,
+            "age": p.age,
+        })
+
+    return results
+
 
 from pydantic_models import DoctorUpdate, PatientUpdate
 
 @app.post("/admin/doctors")
 def admin_add_doctor(doctor: DoctorCR, user=Depends(get_current_user), db: Session = Depends(get_session)):
     require_admin(user)
-    existing_user = db.execute(select(User).where(User.email == doctor.email)).scalar_one_or_none()
+    existing_user = db.exec(select(User).where(User.email == doctor.email)).scalar_one_or_none()
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
     db_user = User(
@@ -182,7 +238,7 @@ def admin_remove_doctor(doctor_id: int, user=Depends(get_current_user), db: Sess
 @app.post("/admin/patients")
 def admin_add_patient(patient: PatientCR, user=Depends(get_current_user), db: Session = Depends(get_session)):
     require_admin(user)
-    existing_user = db.execute(select(User).where(User.email == patient.email)).scalar_one_or_none()
+    existing_user = db.exec(select(User).where(User.email == patient.email)).scalar_one_or_none()
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
     db_user = User(
@@ -227,7 +283,7 @@ def admin_remove_patient(patient_id: int, user=Depends(get_current_user), db: Se
 def register_doctor(doctor: DoctorCR, db: Session = Depends(get_session)):
     enforce_user_limit(db)
     # 1. Check if user with same email exists
-    existing_user = db.execute(
+    existing_user = db.exec(
         select(User).where(User.email == doctor.email)
     ).scalar_one_or_none()
     
@@ -266,7 +322,7 @@ def register_doctor(doctor: DoctorCR, db: Session = Depends(get_session)):
 def p_register_page(patient:PatientCR,db :Session =Depends(get_session)):
     enforce_user_limit(db)
     # 1. Check if user with same email exists
-    existing_user = db.execute(
+    existing_user = db.exec(
         select(User).where(User.email == patient.email)
     ).scalar_one_or_none()
     
@@ -304,7 +360,7 @@ def p_register_page(patient:PatientCR,db :Session =Depends(get_session)):
 # @app.get("/dashboard/Doctor/{user_id}",response_model=DoctorCombined)
 # def doctor_dashboard(user_id: int, db: Session = Depends(get_session)):
 #     user= db.get(User, user_id)
-#     doctor=db.execute(select(Doctor).where(Doctor.user_id==user_id)).scalar_one_or_none()
+#     doctor=db.exec(select(Doctor).where(Doctor.user_id==user_id)).scalar_one_or_none()
 #     return DoctorCombined(
 #         user=user,
 #         doctor=doctor
@@ -313,7 +369,7 @@ def p_register_page(patient:PatientCR,db :Session =Depends(get_session)):
 # @app.get("/dashboard/Patient/{user_id}",response_model=PatientCombined)
 # def patient_dashboard(user_id: int, db: Session = Depends(get_session)):
 #     user = db.get(User, user_id)
-#     patient=db.execute(select(Patient).where(Patient.user_id==user_id)).scalar_one_or_none()
+#     patient=db.exec(select(Patient).where(Patient.user_id==user_id)).scalar_one_or_none()
 #     return PatientCombined(
 #         user=user,
 #         patient=patient
@@ -332,20 +388,20 @@ def patient_dashboard(user=Depends(get_current_user)):
 
 @app.get("/appointments")
 def get_appointments(current_user: dict = Depends(get_current_user), db: Session = Depends(get_session)):
-    db_user = db.query(User).filter(User.email == current_user["email"]).first()
+    db_user = db.exec(User).filter(User.email == current_user["email"]).first()
 
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
 
     if db_user.role == RoleEnum.patient:
         patient = db_user.patient_profile
-        appointments = db.query(Appointment).filter(Appointment.patient_id == patient.id).all()
+        appointments = db.exec(Appointment).filter(Appointment.patient_id == patient.id).all()
     elif db_user.role == RoleEnum.doctor:
         doctor = db_user.doctor_profile
-        appointments = db.query(Appointment).filter(Appointment.doctor_id == doctor.id).all()
+        appointments = db.exec(Appointment).filter(Appointment.doctor_id == doctor.id).all()
         print(appointments)
     else:
-        appointments = db.query(Appointment).all()  # for admin
+        appointments = db.exec(Appointment).all()  # for admin
 
     # Return a **list of dictionaries** so frontend can map
     result = []
@@ -396,7 +452,7 @@ def book_appointment(
     notes = payload.notes or ""
 
     # Validate user
-    db_user = db.query(User).filter(User.email == current_user["email"]).first()
+    db_user = db.exec(User).filter(User.email == current_user["email"]).first()
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
     if db_user.role != RoleEnum.patient:
@@ -406,7 +462,7 @@ def book_appointment(
         raise HTTPException(status_code=400, detail="No patient profile found")
 
     # Validate doctor
-    doctor = db.query(Doctor).filter(Doctor.id == doctor_id).first()
+    doctor = db.exec(Doctor).filter(Doctor.id == doctor_id).first()
     if not doctor:
         raise HTTPException(status_code=404, detail="Doctor not found")
 
@@ -418,7 +474,7 @@ def book_appointment(
 
     # --- IMPORTANT: DO NOT block if slot not in doctor.availability ---
     # Instead we only check conflicts (double booking)
-    conflict = db.query(Appointment).filter(
+    conflict = db.exec(Appointment).filter(
         Appointment.doctor_id == doctor.id,
         Appointment.appointment_date == requested_slot
     ).first()
@@ -460,7 +516,7 @@ def cancel_appointment(
     Cancel an appointment if it belongs to the current patient.
     """
     # Validate user
-    db_user = db.query(User).filter(User.email == current_user["email"]).first()
+    db_user = db.exec(User).filter(User.email == current_user["email"]).first()
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
     if db_user.role != RoleEnum.patient:
@@ -470,7 +526,7 @@ def cancel_appointment(
         raise HTTPException(status_code=400, detail="No patient profile found")
 
     # Fetch appointment
-    appointment = db.query(Appointment).filter(
+    appointment = db.exec(Appointment).filter(
         Appointment.id == appointment_id,
         Appointment.patient_id == patient.id
     ).first()
@@ -496,7 +552,7 @@ def search_doctors(q: str = "", db: Session = Depends(get_session)):
     """
     Search doctors by specialization or username
     """
-    doctors = db.query(Doctor).join(User).filter(
+    doctors = db.exec(Doctor).join(User).filter(
         (Doctor.specialization.ilike(f"%{q}%")) |
         (User.username.ilike(f"%{q}%"))
     ).all()
@@ -520,7 +576,7 @@ def list_doctors(db: Session = Depends(get_session)):
     """
     List all doctors with their profiles (specialization, bio, availability)
     """
-    doctors = db.query(Doctor).all()
+    doctors = db.exec(Doctor).all()
     result = []
 
     for d in doctors:
@@ -543,7 +599,7 @@ def patient_update(payload: PatientUpdate, user=Depends(get_current_user), db: S
     Update a patient .
     """
     # Validate user
-    db_user = db.query(User).filter(User.email == user["email"]).first()
+    db_user = db.exec(User).filter(User.email == user["email"]).first()
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
     if db_user.role != RoleEnum.patient:
@@ -574,7 +630,7 @@ def get_doctor_patients(
 
     # 2️⃣ Find doctor by user email (join with User)
     doctor = (
-        db.query(Doctor)
+        db.exec(Doctor)
         .join(User)
         .filter(User.email == current_user["email"])
         .first()
@@ -585,7 +641,7 @@ def get_doctor_patients(
 
     # 3️⃣ Get all unique patient_ids linked to this doctor
     patient_ids = (
-        db.query(Appointment.patient_id)
+        db.exec(Appointment.patient_id)
         .filter(Appointment.doctor_id == doctor.id)
         .distinct()
         .all()
@@ -597,7 +653,7 @@ def get_doctor_patients(
 
     # 4️⃣ Fetch patient + user details
     patients = (
-        db.query(Patient, User)
+        db.exec(Patient, User)
         .join(User, Patient.user_id == User.id)
         .filter(Patient.id.in_(patient_ids))
         .all()
@@ -632,7 +688,7 @@ def update_appointment_status(
 
     # 2️⃣ Find doctor by user email (join with User)
     doctor = (
-        db.query(Doctor)
+        db.exec(Doctor)
         .join(User)
         .filter(User.email == current_user["email"])
         .first()
@@ -642,7 +698,7 @@ def update_appointment_status(
         raise HTTPException(status_code=404, detail="Doctor profile not found")
 
     # 3️⃣ Fetch the appointment ensuring it belongs to this doctor
-    appointment = db.query(Appointment).filter(
+    appointment = db.exec(Appointment).filter(
         Appointment.id == id,
         Appointment.doctor_id == doctor.id
     ).first()
@@ -677,7 +733,7 @@ def get_availability(
     if "doctor" not in current_user["roles"]:
         raise HTTPException(status_code=403, detail="Access restricted to doctors")
     
-    doctor = db.query(Doctor).join(User).filter(User.email == current_user["email"]).first()
+    doctor = db.exec(Doctor).join(User).filter(User.email == current_user["email"]).first()
     if not doctor:
         raise HTTPException(status_code=404, detail="Doctor profile not found")
     
@@ -706,7 +762,7 @@ def update_availability(
     if "doctor" not in current_user["roles"]:
         raise HTTPException(status_code=403, detail="Access restricted to doctors")
     
-    doctor = db.query(Doctor).join(User).filter(User.email == current_user["email"]).first()
+    doctor = db.exec(Doctor).join(User).filter(User.email == current_user["email"]).first()
     if not doctor:
         raise HTTPException(status_code=404, detail="Doctor profile not found")
     
@@ -738,7 +794,7 @@ from pydantic import BaseModel, EmailStr
 
 def authenticate_user(db: Session, email: str, password: str):
     stmt = select(User).where(User.email == email)
-    db_user = db.execute(stmt).scalar_one_or_none()
+    db_user = db.exec(stmt).scalar_one_or_none()
     if not db_user:
         return None
     from config import verify_password as _verify
@@ -774,16 +830,16 @@ def require_admin(user):
 @app.get("/admin/summary")
 def admin_summary(user=Depends(get_current_user), db: Session = Depends(get_session)):
     require_admin(user)
-    total_doctors = db.query(func.count(Doctor.id)).scalar() or 0
-    total_patients = db.query(func.count(Patient.id)).scalar() or 0
-    total_appointments = db.query(func.count(Appointment.id)).scalar() or 0
+    total_doctors = db.exec(func.count(Doctor.id)).scalar() or 0
+    total_patients = db.exec(func.count(Patient.id)).scalar() or 0
+    total_appointments = db.exec(func.count(Appointment.id)).scalar() or 0
     return {"doctors": total_doctors, "patients": total_patients, "appointments": total_appointments}
 
 
 @app.get("/admin/appointments")
 def admin_list_appointments(user=Depends(get_current_user), db: Session = Depends(get_session)):
     require_admin(user)
-    appts = db.query(Appointment).order_by(Appointment.appointment_date.desc()).all()
+    appts = db.exec(Appointment).order_by(Appointment.appointment_date.desc()).all()
     result = []
     for a in appts:
         result.append({
@@ -800,9 +856,9 @@ def admin_list_appointments(user=Depends(get_current_user), db: Session = Depend
 @app.get("/admin/search")
 def admin_search(q: str, user=Depends(get_current_user), db: Session = Depends(get_session)):
     require_admin(user)
-    users = db.execute(select(User).where(User.username.ilike(f"%{q}%"))).scalars().all()
-    doctors = db.execute(select(Doctor).join(User).where(User.username.ilike(f"%{q}%"))).scalars().all()
-    patients = db.execute(select(Patient).join(User).where(User.username.ilike(f"%{q}%"))).scalars().all()
+    users = db.exec(select(User).where(User.username.ilike(f"%{q}%"))).scalars().all()
+    doctors = db.exec(select(Doctor).join(User).where(User.username.ilike(f"%{q}%"))).scalars().all()
+    patients = db.exec(select(Patient).join(User).where(User.username.ilike(f"%{q}%"))).scalars().all()
     return {
         "users": [{"id": u.id, "username": u.username, "email": u.email, "role": u.role.value, "is_active": u.is_active} for u in users],
         "doctors": [{"id": d.id, "user_id": d.user_id, "specialization": d.specialization} for d in doctors],
@@ -813,7 +869,7 @@ def admin_search(q: str, user=Depends(get_current_user), db: Session = Depends(g
 @app.post("/admin/doctors")
 def admin_add_doctor(doctor: DoctorCR, user=Depends(get_current_user), db: Session = Depends(get_session)):
     require_admin(user)
-    existing_user = db.execute(select(User).where(User.email == doctor.email)).scalar_one_or_none()
+    existing_user = db.exec(select(User).where(User.email == doctor.email)).scalar_one_or_none()
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
     db_user = User(
@@ -861,7 +917,7 @@ def admin_remove_doctor(doctor_id: int, user=Depends(get_current_user), db: Sess
 @app.post("/admin/patients")
 def admin_add_patient(patient: PatientCR, user=Depends(get_current_user), db: Session = Depends(get_session)):
     require_admin(user)
-    existing_user = db.execute(select(User).where(User.email == patient.email)).scalar_one_or_none()
+    existing_user = db.exec(select(User).where(User.email == patient.email)).scalar_one_or_none()
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
     db_user = User(
@@ -922,10 +978,10 @@ class HistoryEntry(BaseModel):
 
 
 def get_doctor_user(db: Session, user_email: str):
-    usr = db.execute(select(User).where(User.email == user_email)).scalar_one_or_none()
+    usr = db.exec(select(User).where(User.email == user_email)).scalar_one_or_none()
     if not usr or usr.role != RoleEnum.doctor:
         raise HTTPException(status_code=403, detail="Doctor only")
-    doc = db.execute(select(Doctor).where(Doctor.user_id == usr.id)).scalar_one_or_none()
+    doc = db.exec(select(Doctor).where(Doctor.user_id == usr.id)).scalar_one_or_none()
     if not doc:
         raise HTTPException(status_code=404, detail="Doctor profile not found")
     return usr, doc
@@ -934,7 +990,7 @@ def get_doctor_user(db: Session, user_email: str):
 @app.get("/doctor/appointments")
 def doctor_appointments(user=Depends(get_current_user), db: Session = Depends(get_session)):
     usr, doc = get_doctor_user(db, user["username"])  # token sub holds email
-    appts = db.execute(select(Appointment).where(Appointment.doctor_id == doc.id)).scalars().all()
+    appts = db.exec(select(Appointment).where(Appointment.doctor_id == doc.id)).scalars().all()
     result = []
     for a in appts:
         result.append({
@@ -965,7 +1021,7 @@ def doctor_update_status(appointment_id: int, payload: StatusUpdate, user=Depend
 @app.get("/doctor/patients")
 def doctor_patients(user=Depends(get_current_user), db: Session = Depends(get_session)):
     usr, doc = get_doctor_user(db, user["username"]) 
-    pats = db.execute(
+    pats = db.exec(
         select(Patient).join(Appointment, Appointment.patient_id == Patient.id).where(Appointment.doctor_id == doc.id).distinct()
     ).scalars().all()
     out = []
@@ -988,7 +1044,7 @@ def doctor_set_availability(payload: AvailabilityPayload, user=Depends(get_curre
 def get_patient_history(patient_id: int, user=Depends(get_current_user), db: Session = Depends(get_session)):
     usr, doc = get_doctor_user(db, user["username"]) 
     import json
-    appts = db.execute(select(Appointment).where(Appointment.patient_id == patient_id, Appointment.doctor_id == doc.id)).scalars().all()
+    appts = db.exec(select(Appointment).where(Appointment.patient_id == patient_id, Appointment.doctor_id == doc.id)).scalars().all()
     history = []
     for a in appts:
         entry = {"date": a.appointment_date}
@@ -1005,7 +1061,7 @@ def get_patient_history(patient_id: int, user=Depends(get_current_user), db: Ses
 @app.post("/doctor/patient/{patient_id}/history")
 def add_patient_history(patient_id: int, payload: HistoryEntry, user=Depends(get_current_user), db: Session = Depends(get_session)):
     usr, doc = get_doctor_user(db, user["username"]) 
-    appt = db.execute(select(Appointment).where(Appointment.patient_id == patient_id, Appointment.doctor_id == doc.id).order_by(Appointment.appointment_date.desc())).scalars().first()
+    appt = db.exec(select(Appointment).where(Appointment.patient_id == patient_id, Appointment.doctor_id == doc.id).order_by(Appointment.appointment_date.desc())).scalars().first()
     if not appt:
         raise HTTPException(status_code=404, detail="No appointment to attach history")
     import json
@@ -1028,10 +1084,10 @@ class BookAppointment(BaseModel):
 
 
 def get_patient_user(db: Session, email: str):
-    usr = db.execute(select(User).where(User.email == email)).scalar_one_or_none()
+    usr = db.exec(select(User).where(User.email == email)).scalar_one_or_none()
     if not usr or usr.role != RoleEnum.patient:
         raise HTTPException(status_code=403, detail="Patient only")
-    pat = db.execute(select(Patient).where(Patient.user_id == usr.id)).scalar_one_or_none()
+    pat = db.exec(select(Patient).where(Patient.user_id == usr.id)).scalar_one_or_none()
     if not pat:
         raise HTTPException(status_code=404, detail="Patient profile not found")
     return usr, pat
@@ -1040,7 +1096,7 @@ def get_patient_user(db: Session, email: str):
 @app.get("/patient/specializations")
 def patient_specializations(user=Depends(get_current_user), db: Session = Depends(get_session)):
     usr, pat = get_patient_user(db, user["username"]) 
-    specs = db.execute(select(Doctor.specialization).distinct()).scalars().all()
+    specs = db.exec(select(Doctor.specialization).distinct()).scalars().all()
     return specs
 
 
@@ -1048,7 +1104,7 @@ def patient_specializations(user=Depends(get_current_user), db: Session = Depend
 def patient_doctors(user=Depends(get_current_user), db: Session = Depends(get_session)):
     usr, pat = get_patient_user(db, user["username"]) 
     import json
-    rows = db.execute(select(Doctor, User).join(User, User.id == Doctor.user_id)).all()
+    rows = db.exec(select(Doctor, User).join(User, User.id == Doctor.user_id)).all()
     out = []
     for d, u in rows:
         avail = []
@@ -1065,7 +1121,7 @@ def patient_doctors(user=Depends(get_current_user), db: Session = Depends(get_se
 def patient_appointments(user=Depends(get_current_user), db: Session = Depends(get_session)):
     usr, pat = get_patient_user(db, user["username"]) 
     import json
-    appts = db.execute(select(Appointment).where(Appointment.patient_id == pat.id)).scalars().all()
+    appts = db.exec(select(Appointment).where(Appointment.patient_id == pat.id)).scalars().all()
     out = []
     for a in appts:
         item = {"id": a.id, "doctor_id": a.doctor_id, "appointment_date": a.appointment_date, "status": a.status.value}
@@ -1150,12 +1206,12 @@ class ExportCSVRequest(BaseModel):
 #     """Generate CSV of a patient's treatments, email it, and store for download."""
 #     task_results[payload.task_id] = {"status": "pending", "filename": None}
 #     try:
-#         patient = session.query(Patient).filter(Patient.id == payload.patient_id).first()
+#         patient = session.exec(Patient).filter(Patient.id == payload.patient_id).first()
 #         if not patient:
 #             task_results[payload.task_id]["status"] = "failed"
 #             raise HTTPException(status_code=404, detail="Patient not found")
 
-#         appointments = session.query(Appointment).filter(
+#         appointments = session.exec(Appointment).filter(
 #             Appointment.patient_id == payload.patient_id
 #         ).all()
 
@@ -1205,7 +1261,7 @@ def export_csv_job(
     task_results[payload.task_id] = {"status": "pending", "filename": None}
 
     try:
-        patient = session.query(Patient).filter(
+        patient = session.exec(Patient).filter(
             Patient.id == payload.patient_id
         ).first()
 
@@ -1213,7 +1269,7 @@ def export_csv_job(
             task_results[payload.task_id]["status"] = "failed"
             raise HTTPException(status_code=404, detail="Patient not found")
 
-        appointments = session.query(Appointment).filter(
+        appointments = session.exec(Appointment).filter(
             Appointment.patient_id == payload.patient_id
         ).all()
 
@@ -1361,11 +1417,11 @@ def monthly_report_job(session: Session = Depends(get_session)):
     _, last_day = calendar.monthrange(today.year, today.month)
     end_date = today.replace(day=last_day)
 
-    doctors = session.query(Doctor).all()
+    doctors = session.exec(Doctor).all()
     sent_count = 0
 
     for doc in doctors:
-        appointments = session.query(Appointment).filter(
+        appointments = session.exec(Appointment).filter(
             Appointment.doctor_id == doc.id,
             Appointment.appointment_date >= start_date,
             Appointment.appointment_date <= end_date
@@ -1420,43 +1476,7 @@ def monthly_report_job(session: Session = Depends(get_session)):
 
     return {"message": f"Monthly reports sent to {sent_count} doctors"}
 
-# @app.post("/monthly-report")
-# def monthly_report_job(session: Session = Depends(get_session)):
-#     """Send monthly report to doctors with appointments done in current month."""
-#     today = date.today()
-#     start_date = today.replace(day=1)
-#     _, last_day = calendar.monthrange(today.year, today.month)
-#     end_date = today.replace(day=last_day)
 
-#     doctors = session.query(Doctor).all()
-#     sent_count = 0
-
-#     for doc in doctors:
-#         appointments = session.query(Appointment).filter(
-#             Appointment.doctor_id == doc.id,
-#             Appointment.appointment_date >= start_date,
-#             Appointment.appointment_date <= end_date
-#         ).all()
-
-#         if not appointments:
-#             continue
-
-#         rows = "".join(
-#             f"<tr><td>{a.patient.user.username}</td><td>{a.appointment_date}</td><td>{a.notes or ''}</td></tr>"
-#             for a in appointments
-#         )
-#         html_report = f"""
-#         <h3>Monthly Activity Report</h3>
-#         <table border='1' cellpadding='5'>
-#             <tr><th>Patient</th><th>Date</th><th>Notes</th></tr>
-#             {rows}
-#         </table>
-#         """
-#         send_email(doc.user.email, "Monthly Activity Report",message="Please find your monthly appointments attached.Thankyou!!!",
-#     content="html", attachment_file=html_report)
-#         sent_count += 1
-
-#     return {"message": f"Monthly reports sent to {sent_count} doctors"}
 
 from utils.qstash_utils import schedule_job
 import os
@@ -1480,7 +1500,7 @@ if __name__ == "__main__":
 def daily_reminder_job(session: Session = Depends(get_session)):
     """Send daily reminders to patients with appointments today."""
     today = date.today()
-    appointments = session.query(Appointment).filter(
+    appointments = session.exec(Appointment).filter(
         Appointment.appointment_date >= today,
         Appointment.status == "scheduled"
     ).all()
@@ -1514,13 +1534,13 @@ def get_my_patient_id(
         raise HTTPException(status_code=401, detail="Invalid token payload")
 
     # 2️⃣ Find User using email
-    user = db.query(User).filter(User.email == email).first()
+    user = db.exec(User).filter(User.email == email).first()
 
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
     # 3️⃣ Find Patient using user.id
-    patient = db.query(Patient).filter(
+    patient = db.exec(Patient).filter(
         Patient.user_id == user.id
     ).first()
 

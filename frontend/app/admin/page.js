@@ -3,8 +3,9 @@ import { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../lib/api";
 
 export default function AdminPage() {
+  const [results, setResults] = useState([]);
   const [summary, setSummary] = useState({ doctors: 0, patients: 0, appointments: 0 });
-  const [query, setQuery] = useState("");
+  const [exec, setexec] = useState("");
   const [search, setSearch] = useState({ users: [], doctors: [], patients: [] });
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -20,10 +21,14 @@ export default function AdminPage() {
     setAppointments(data || []);
   }
   async function runSearch() {
-    if (!query) { setSearch({ users: [], doctors: [], patients: [] }); return; }
-    const data = await apiFetch(`/admin/search?q=${encodeURIComponent(query)}`);
-    setSearch(data);
+  if (!exec) {
+    setResults([]);
+    return;
   }
+  const data = await apiFetch(`/admin/search?q=${encodeURIComponent(exec)}`);
+  setResults(data);
+}
+
 
   function openModal(kind, mode, entity = null) {
     setModal({ open: true, kind, mode, entity });
@@ -54,6 +59,11 @@ export default function AdminPage() {
       .catch((e) => setError(e.message || "Failed to load"))
       .finally(() => setLoading(false));
   }, []);
+useEffect(() => {
+  if (!exec) return;
+  const t = setTimeout(runSearch, 300);
+  return () => clearTimeout(t);
+}, [exec]);
 
   async function blacklistUser(kind, id) {
     try {
@@ -87,8 +97,8 @@ export default function AdminPage() {
 
       <div className="section">
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <input className="input" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search users, doctors, patients" />
-          <button className="btn btn-primary" onClick={runSearch} disabled={loading || !query}>Search</button>
+          <input className="input" value={exec} onChange={(e) => setexec(e.target.value)} placeholder="Search users, doctors, patients" />
+          <button className="btn btn-primary" onClick={runSearch} disabled={loading || !exec}>Search</button>
           <span style={{ flex: 1 }} />
           <button className="btn" onClick={() => openModal("doctor", "add")}>Add Doctor</button>
           <button className="btn" onClick={() => openModal("patient", "add")}>Add Patient</button>
