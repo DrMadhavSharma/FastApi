@@ -5,7 +5,7 @@ import { apiFetch } from "../lib/api";
 export default function AdminPage() {
   const [results, setResults] = useState([]);
   const [summary, setSummary] = useState({ doctors: 0, patients: 0, appointments: 0 });
-  const [exec, setexec] = useState("");
+  const [query, setquery] = useState("");
   const [search, setSearch] = useState({ users: [], doctors: [], patients: [] });
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -21,11 +21,11 @@ export default function AdminPage() {
     setAppointments(data || []);
   }
   async function runSearch() {
-  if (!exec) {
+  if (!query) {
     setResults([]);
     return;
   }
-  const data = await apiFetch(`/admin/search?q=${encodeURIComponent(exec)}`);
+  const data = await apiFetch(`/admin/search?q=${encodeURIComponent(query)}`);
   setResults(data);
 }
 
@@ -60,10 +60,10 @@ export default function AdminPage() {
       .finally(() => setLoading(false));
   }, []);
 useEffect(() => {
-  if (!exec) return;
+  if (!query) return;
   const t = setTimeout(runSearch, 300);
   return () => clearTimeout(t);
-}, [exec]);
+}, [query]);
 
   async function blacklistUser(kind, id) {
     try {
@@ -97,8 +97,8 @@ useEffect(() => {
 
       <div className="section">
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <input className="input" value={exec} onChange={(e) => setexec(e.target.value)} placeholder="Search users, doctors, patients" />
-          <button className="btn btn-primary" onClick={runSearch} disabled={loading || !exec}>Search</button>
+          <input className="input" value={query} onChange={(e) => setquery(e.target.value)} placeholder="Search users, doctors, patients" />
+          <button className="btn btn-primary" onClick={runSearch} disabled={loading || !query}>Search</button>
           <span style={{ flex: 1 }} />
           <button className="btn" onClick={() => openModal("doctor", "add")}>Add Doctor</button>
           <button className="btn" onClick={() => openModal("patient", "add")}>Add Patient</button>
