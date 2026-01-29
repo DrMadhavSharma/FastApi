@@ -1272,11 +1272,11 @@ def export_csv_job(
 #     raw = await request.json()
 #     print("RAW BODY FROM QSTASH:", raw)
 
-# ----------------- Trigger route: admin clicks button -----------------
+# ----------------- Trigger route: patient clicks button -----------------
 @app.post("/trigger-export")
 async def trigger_export(request: Request):
     """
-    Admin clicks button → send request to QStash → QStash calls /export-csv asynchronously.
+    patient clicks button → send request to QStash → QStash calls /export-csv asynchronously.
     """
     body = await request.json()
     print("RAW BODY:", body)
@@ -1328,27 +1328,27 @@ async def trigger_export(request: Request):
 
     return {"task_id": task_id, "status": "queued"}
 
-# ----------------- Status route: check CSV export status -----------------
-@app.get("/csv-status/{task_id}")
-def csv_status(task_id: str):
-    task = task_results.get(task_id)
-    if not task:
-        return {"task_id": task_id, "status": "unknown"}
-    return {"task_id": task_id, "status": task["status"], "filename": task["filename"]}
+# # ----------------- Status route: check CSV export status -----------------
+# @app.get("/csv-status/{task_id}")
+# def csv_status(task_id: str):
+#     task = task_results.get(task_id)
+#     if not task:
+#         return {"task_id": task_id, "status": "unknown"}
+#     return {"task_id": task_id, "status": task["status"], "filename": task["filename"]}
 
 
-# ----------------- Download route: admin downloads CSV -----------------
-@app.get("/download-csv/{task_id}")
-def download_csv(task_id: str):
-    task = task_results.get(task_id)
-    if not task or task["status"] != "completed":
-        raise HTTPException(status_code=404, detail="CSV not ready for download")
+# # ----------------- Download route: admin downloads CSV -----------------
+# @app.get("/download-csv/{task_id}")
+# def download_csv(task_id: str):
+#     task = task_results.get(task_id)
+#     if not task or task["status"] != "completed":
+#         raise HTTPException(status_code=404, detail="CSV not ready for download")
     
-    filepath = os.path.join(CSV_STORAGE_DIR, task["filename"])
-    if not os.path.exists(filepath):
-        raise HTTPException(status_code=404, detail="CSV file not found")
+#     filepath = os.path.join(CSV_STORAGE_DIR, task["filename"])
+#     if not os.path.exists(filepath):
+#         raise HTTPException(status_code=404, detail="CSV file not found")
 
-    return FileResponse(filepath, filename=task["filename"], media_type="text/csv")
+#     return FileResponse(filepath, filename=task["filename"], media_type="text/csv")
 
 from datetime import date
 import calendar
@@ -1385,7 +1385,8 @@ def monthly_report_job(session: Session = Depends(get_session)):
             {rows}
         </table>
         """
-        send_email(doc.user.email, "Monthly Activity Report", html_report, html=True)
+        send_email(doc.user.email, "Monthly Activity Report",message="Please find your monthly appointments attached.Thankyou!!!",
+    content="html", attachment_file=html_report)
         sent_count += 1
 
     return {"message": f"Monthly reports sent to {sent_count} doctors"}
