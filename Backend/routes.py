@@ -1657,38 +1657,31 @@ async def trigger_system_export(
     }
     
 #2️⃣ QStash job endpoint (HEAVY WORK)
-import csv, os
-from datetime import datetime, timedelta
-from sqlmodel import select
-
-EXPORT_DIR = "exports"
-os.makedirs(EXPORT_DIR, exist_ok=True)
-
 @app.post("/admin/export-system-csv/job")
 def export_system_csv_job(
     payload: dict,
     db: Session = Depends(get_session)
 ):
-    task_id = payload["task_id"]
+    if "task_id" not in payload:
+        raise HTTPException(status_code=400, detail="Invalid payload")
 
+    task_id = payload["task_id"]
     filepath = f"{EXPORT_DIR}/system_{task_id}.csv"
 
     today = datetime.utcnow()
     week_end = today + timedelta(days=7)
 
-    users = db.exec(select(User)).all()
+    users = db.exec(select(User)).scalars().all()
     appointments = db.exec(
-        select(Appointment)
-        .where(
+        select(Appointment).where(
             Appointment.appointment_date >= today,
             Appointment.appointment_date <= week_end
         )
-    ).all()
+    ).scalars().all()
 
     with open(filepath, "w", newline="") as f:
         writer = csv.writer(f)
 
-        # USERS
         writer.writerow(["===== USERS ====="])
         writer.writerow(["id","username","email","role","is_active","created_at"])
         for u in users:
@@ -1698,10 +1691,9 @@ def export_system_csv_job(
             ])
 
         writer.writerow([])
-
-        # APPOINTMENTS
         writer.writerow(["===== UPCOMING APPOINTMENTS (THIS WEEK) ====="])
         writer.writerow(["id","doctor","patient","date","status"])
+
         for a in appointments:
             writer.writerow([
                 a.id,
@@ -1711,7 +1703,12 @@ def export_system_csv_job(
                 a.status.value
             ])
 
-    return {"status": "done", "file": filepath}
+    task_results[task_id] = {
+        "status": "completed",
+        "filename": f"system_{task_id}.csv"
+    }
+
+    return {"status": "done"}
 
 #3️⃣ Download endpoint (DIRECT DOWNLOAD)
 from fastapi.responses import FileResponse
@@ -1733,6 +1730,7 @@ def download_system_csv(
         media_type="text/csv",
         filename=f"system_export_{task_id}.csv"
     )
+
 
 
 
