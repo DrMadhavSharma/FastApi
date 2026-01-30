@@ -65,15 +65,31 @@ useEffect(() => {
 }, [query]);
 
   async function blacklistUser(kind, id) {
-    try {
-      setError("");
-      setLoading(true);
-      if (kind === "doctor") await apiFetch(`/admin/doctors/${id}`, { method: "DELETE" });
-      if (kind === "patient") await apiFetch(`/admin/patients/${id}`, { method: "DELETE" });
-      await Promise.all([loadSummary(), runSearch()]);
-    } catch (e) { setError(e.message); }
-    finally { setLoading(false); }
+  try {
+    if (!["doctor", "patient"].includes(kind)) {
+      throw new Error("Invalid blacklist type");
+    }
+
+    setError("");
+    setLoading(true);
+
+    const endpoint =
+      kind === "doctor"
+        ? `/admin/doctors/${id}`
+        : `/admin/patients/${id}`;
+
+    await apiFetch(endpoint, { method: "DELETE" });
+
+    await Promise.all([
+      loadSummary(),
+      query ? runSearch() : Promise.resolve()
+    ]);
+  } catch (e) {
+    setError(e.message || "Failed to blacklist");
+  } finally {
+    setLoading(false);
   }
+}
 
   const upcoming = useMemo(() => {
     const now = new Date();
