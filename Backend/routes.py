@@ -797,15 +797,15 @@ def admin_search(
 
     users = db.exec(
         select(User).where(User.username.ilike(f"%{q}%"))
-    ).scalars().all()
+    ).all()
 
     doctors = db.exec(
         select(Doctor).join(User).where(User.username.ilike(f"%{q}%"))
-    ).scalars().all()
+    ).all()
 
     patients = db.exec(
         select(Patient).join(User).where(User.username.ilike(f"%{q}%"))
-    ).scalars().all()
+    ).all()
 
     return {
         "users": [
@@ -1526,6 +1526,7 @@ def get_my_patient_id(
         "patient_email": email
 
     }
+
 
 
 
