@@ -7,6 +7,7 @@ export default function AdminPage() {
   const [query, setquery] = useState("");
   const [search, setSearch] = useState({ users: [], doctors: [], patients: [] });
   const [appointments, setAppointments] = useState([]);
+  const [exporting, setExporting] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [modal, setModal] = useState({ open: false, kind: null, mode: null, entity: null });
@@ -112,6 +113,44 @@ async function deleteEntity(kind, id) {
     setLoading(false);
   }
 }
+  async function exportSystemCsv() {
+  const token = localStorage.getItem("access_token");
+
+  const res = await fetch(
+    "/admin/export-system-csv",
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    }
+  );
+
+  const data = await res.json();
+  pollForCsv(data.task_id);
+  }
+  function pollForCsv(taskId) {
+  const token = localStorage.getItem("access_token");
+
+  const interval = setInterval(async () => {
+    const res = await fetch(
+      `/admin/export-system-csv/${taskId}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    if (res.ok) {
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "system_export.csv";
+      a.click();
+
+      window.URL.revokeObjectURL(url);
+      clearInterval(interval);
+    }
+  }, 3000); // poll every 3 sec
+  }
+  
   const upcoming = useMemo(() => {
     const now = new Date();
     return appointments.filter(a => new Date(a.appointment_date) > now);
@@ -125,6 +164,9 @@ async function deleteEntity(kind, id) {
     <div className="container" style={{ paddingTop: 20 }}>
       <h1>Admin Dashboard</h1>
       {error ? <p className="error">{error}</p> : null}
+      <button className="btn btn-primary" disabled={exporting} onClick={exportSystemCsv}>
+      {exporting ? "Exporting..." : "Export System CSV"}
+      </button>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 12, margin: "12px 0" }}>
         <div className="section"><strong>Doctors</strong><div style={{ fontSize: 24 }}>{summary.doctors}</div></div>
         <div className="section"><strong>Patients</strong><div style={{ fontSize: 24 }}>{summary.patients}</div></div>
