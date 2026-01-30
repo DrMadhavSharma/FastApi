@@ -1613,9 +1613,6 @@ async def trigger_system_export(
     """
     require_admin(user)
 
-    body = await request.json()
-    print("RAW BODY:", body)
-
     # ✅ generate task id
     task_id = str(uuid.uuid4())
 
@@ -1730,6 +1727,7 @@ def download_system_csv(
         media_type="text/csv",
         filename=f"system_export_{task_id}.csv"
     )
+
 
 
 
