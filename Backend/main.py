@@ -52,7 +52,7 @@ def on_startup():
     with Session(engine) as db:
         from sqlalchemy import select
         from models import User, RoleEnum
-        existing = db.queryute(select(User).where(User.role == RoleEnum.admin)).scalar_one_or_none()
+        existing = db.execute(select(User).where(User.role == RoleEnum.admin)).scalar_one_or_none()
         if not existing:
             admin_user = User(
                 username="admin",
@@ -79,7 +79,7 @@ def on_startup():
    with Session(engine) as db:
        from sqlalchemy import select
        from models import User, RoleEnum
-       existing = db.queryute(select(User).where(User.role == RoleEnum.admin)).scalar_one_or_none()
+       existing = db.execute(select(User).where(User.role == RoleEnum.admin)).scalar_one_or_none()
        if not existing:
            admin_user = User(
                username="admin",
@@ -90,3 +90,4 @@ def on_startup():
            )
            db.add(admin_user)
            db.commit()
+
