@@ -13,6 +13,12 @@ import json
 from dateutil import parser
 from typing import List, Dict
 import pytz
+import os
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+EXPORT_DIR = os.path.join(BASE_DIR, "exports")
+
+os.makedirs(EXPORT_DIR, exist_ok=True)
 def enforce_user_limit(db: Session):
     MAX_ACTIVE_USERS = 500
     total_active = db.query(User).filter(User.is_active==True).count()
@@ -1727,6 +1733,7 @@ def download_system_csv(
         media_type="text/csv",
         filename=f"system_export_{task_id}.csv"
     )
+
 
 
 
