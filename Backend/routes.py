@@ -1674,13 +1674,13 @@ def export_system_csv_job(
     today = datetime.utcnow()
     week_end = today + timedelta(days=7)
 
-    users = db.exec(select(User)).scalars().all()
+    users = db.exec(select(User)).all()
     appointments = db.exec(
         select(Appointment).where(
             Appointment.appointment_date >= today,
             Appointment.appointment_date <= week_end
         )
-    ).scalars().all()
+    ).all()
 
     with open(filepath, "w", newline="") as f:
         writer = csv.writer(f)
@@ -1733,6 +1733,7 @@ def download_system_csv(
         media_type="text/csv",
         filename=f"system_export_{task_id}.csv"
     )
+
 
 
 
