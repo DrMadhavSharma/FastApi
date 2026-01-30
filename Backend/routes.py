@@ -120,8 +120,6 @@ def admin_list_appointments(user=Depends(get_current_user), db: Session = Depend
         })
     return result
 
-from sqlalchemy import or_
-
 @app.get("/admin/search")
 def admin_search(
     q: str,
@@ -130,7 +128,7 @@ def admin_search(
 ):
     require_admin(user)
 
-    users = db.query(
+    users = db.exec(
         select(User).where(
             or_(
                 User.username.ilike(f"%{q}%"),
@@ -139,8 +137,10 @@ def admin_search(
         )
     ).scalars().all()
 
-    doctors = db.query(
-        select(Doctor).join(User).where(
+    doctors = db.exec(
+        select(Doctor)
+        .join(User)
+        .where(
             or_(
                 User.username.ilike(f"%{q}%"),
                 User.email.ilike(f"%{q}%"),
@@ -148,8 +148,10 @@ def admin_search(
         )
     ).scalars().all()
 
-    patients = db.query(
-        select(Patient).join(User).where(
+    patients = db.exec(
+        select(Patient)
+        .join(User)
+        .where(
             or_(
                 User.username.ilike(f"%{q}%"),
                 User.email.ilike(f"%{q}%"),
@@ -157,36 +159,34 @@ def admin_search(
         )
     ).scalars().all()
 
-    results = []
-
-    for u in users:
-        results.append({
-            "type": "user",
-            "id": u.id,
-            "username": u.username,
-            "email": u.email,
-            "role": u.role.value,
-            "is_active": u.is_active,
-        })
-
-    for d in doctors:
-        results.append({
-            "type": "doctor",
-            "id": d.id,
-            "user_id": d.user_id,
-            "specialization": d.specialization,
-        })
-
-    for p in patients:
-        results.append({
-            "type": "patient",
-            "id": p.id,
-            "user_id": p.user_id,
-            "age": p.age,
-        })
-
-    return results
-
+    return {
+        "users": [
+            {
+                "id": u.id,
+                "username": u.username,
+                "email": u.email,
+                "role": u.role.value,
+                "is_active": u.is_active,
+            }
+            for u in users
+        ],
+        "doctors": [
+            {
+                "id": d.id,
+                "user_id": d.user_id,
+                "specialization": d.specialization,
+            }
+            for d in doctors
+        ],
+        "patients": [
+            {
+                "id": p.id,
+                "user_id": p.user_id,
+                "age": p.age,
+            }
+            for p in patients
+        ],
+    }
 
 from pydantic_models import DoctorUpdate, PatientUpdate
 
@@ -1555,4 +1555,5 @@ def get_my_patient_id(
         "patient_email": email
 
     }
+
 
