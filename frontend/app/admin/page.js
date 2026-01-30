@@ -90,7 +90,28 @@ useEffect(() => {
     setLoading(false);
   }
 }
+async function deleteEntity(kind, id) {
+  const ok = window.confirm("This will permanently delete the record. Continue?");
+  if (!ok) return;
 
+  try {
+    setError("");
+    setLoading(true);
+
+    let url = "";
+    if (kind === "doctor") url = `/admin/doctors/delete/${id}`;
+    if (kind === "patient") url = `/admin/patients/delete/${id}`;
+
+    await apiFetch(url, { method: "DELETE" });
+
+    await loadSummary();
+    await runSearch();
+  } catch (e) {
+    setError(e.message || "Delete failed");
+  } finally {
+    setLoading(false);
+  }
+}
   const upcoming = useMemo(() => {
     const now = new Date();
     return appointments.filter(a => new Date(a.appointment_date) > now);
@@ -137,6 +158,7 @@ useEffect(() => {
                   #{d.id} • user:{d.user_id} • {d.specialization}
                   <button className="btn" style={{ marginLeft: 8 }} onClick={() => openModal("doctor", "edit", d)}>edit</button>
                   <button className="btn" style={{ marginLeft: 8 }} onClick={() => blacklistUser("doctor", d.id)}>blacklist</button>
+                  <button className="btn btn-danger" style={{ marginLeft: 8 }} onClick={() => deleteEntity("doctor", d.id)}>delete</button>
                 </li>
               ))}
             </ul>
@@ -149,6 +171,7 @@ useEffect(() => {
                   #{p.id} • user:{p.user_id} • age:{p.age ?? "-"}
                   <button className="btn" style={{ marginLeft: 8 }} onClick={() => openModal("patient", "edit", p)}>edit</button>
                   <button className="btn" style={{ marginLeft: 8 }} onClick={() => blacklistUser("patient", p.id)}>blacklist</button>
+                  <button className="btn btn-danger" style={{ marginLeft: 8 }} onClick={() => deleteEntity("patient", p.id)}>delete</button>
                 </li>
               ))}
             </ul>
