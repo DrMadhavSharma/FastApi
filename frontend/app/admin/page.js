@@ -3,7 +3,6 @@ import { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../lib/api";
 
 export default function AdminPage() {
-  const [results, setResults] = useState([]);
   const [summary, setSummary] = useState({ doctors: 0, patients: 0, appointments: 0 });
   const [query, setquery] = useState("");
   const [search, setSearch] = useState({ users: [], doctors: [], patients: [] });
@@ -22,11 +21,11 @@ export default function AdminPage() {
   }
   async function runSearch() {
   if (!query) {
-    setResults([]);
+    setSearch({ users: [], doctors: [], patients: [] });
     return;
   }
   const data = await apiFetch(`/admin/search?q=${encodeURIComponent(query)}`);
-  setResults(data);
+  setSearch(data);   // ✅ CORRECT
 }
 
 
