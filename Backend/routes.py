@@ -120,73 +120,7 @@ def admin_list_appointments(user=Depends(get_current_user), db: Session = Depend
         })
     return result
 
-@app.get("/admin/search")
-def admin_search(
-    q: str,
-    user=Depends(get_current_user),
-    db: Session = Depends(get_session),
-):
-    require_admin(user)
 
-    users = db.exec(
-        select(User).where(
-            or_(
-                User.username.ilike(f"%{q}%"),
-                User.email.ilike(f"%{q}%"),
-            )
-        )
-    ).scalars().all()
-
-    doctors = db.exec(
-        select(Doctor)
-        .join(User)
-        .where(
-            or_(
-                User.username.ilike(f"%{q}%"),
-                User.email.ilike(f"%{q}%"),
-            )
-        )
-    ).scalars().all()
-
-    patients = db.exec(
-        select(Patient)
-        .join(User)
-        .where(
-            or_(
-                User.username.ilike(f"%{q}%"),
-                User.email.ilike(f"%{q}%"),
-            )
-        )
-    ).scalars().all()
-
-    return {
-        "users": [
-            {
-                "id": u.id,
-                "username": u.username,
-                "email": u.email,
-                "role": u.role.value,
-                "is_active": u.is_active,
-            }
-            for u in users
-        ],
-        "doctors": [
-            {
-                "id": d.id,
-                "user_id": d.user_id,
-                "specialization": d.specialization,
-            }
-            for d in doctors
-        ],
-        "patients": [
-            {
-                "id": p.id,
-                "user_id": p.user_id,
-                "age": p.age,
-            }
-            for p in patients
-        ],
-    }
 
 from pydantic_models import DoctorUpdate, PatientUpdate
 
@@ -1592,6 +1526,7 @@ def get_my_patient_id(
         "patient_email": email
 
     }
+
 
 
 
