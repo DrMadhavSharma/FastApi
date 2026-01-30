@@ -794,7 +794,7 @@ from pydantic import BaseModel, EmailStr
 
 def authenticate_user(db: Session, email: str, password: str):
     stmt = select(User).where(User.email == email)
-    db_user = db.queryute(stmt).scalar_one_or_none()
+    db_user = db.execute(stmt).scalar_one_or_none()
     if not db_user:
         return None
     from config import verify_password as _verify
@@ -854,15 +854,52 @@ def admin_list_appointments(user=Depends(get_current_user), db: Session = Depend
 
 
 @app.get("/admin/search")
-def admin_search(q: str, user=Depends(get_current_user), db: Session = Depends(get_session)):
+def admin_search(
+    q: str,
+    user=Depends(get_current_user),
+    db: Session = Depends(get_session)
+):
     require_admin(user)
-    users = db.execute(select(User).where(User.username.ilike(f"%{q}%"))).scalars().all()
-    doctors = db.execute(select(Doctor).join(User).where(User.username.ilike(f"%{q}%"))).scalars().all()
-    patients = db.execute(select(Patient).join(User).where(User.username.ilike(f"%{q}%"))).scalars().all()
+
+    users = db.exec(
+        select(User).where(User.username.ilike(f"%{q}%"))
+    ).scalars().all()
+
+    doctors = db.exec(
+        select(Doctor).join(User).where(User.username.ilike(f"%{q}%"))
+    ).scalars().all()
+
+    patients = db.exec(
+        select(Patient).join(User).where(User.username.ilike(f"%{q}%"))
+    ).scalars().all()
+
     return {
-        "users": [{"id": u.id, "username": u.username, "email": u.email, "role": u.role.value, "is_active": u.is_active} for u in users],
-        "doctors": [{"id": d.id, "user_id": d.user_id, "specialization": d.specialization} for d in doctors],
-        "patients": [{"id": p.id, "user_id": p.user_id, "age": p.age} for p in patients],
+        "users": [
+            {
+                "id": u.id,
+                "username": u.username,
+                "email": u.email,
+                "role": u.role.value,
+                "is_active": u.is_active,
+            }
+            for u in users
+        ],
+        "doctors": [
+            {
+                "id": d.id,
+                "user_id": d.user_id,
+                "specialization": d.specialization,
+            }
+            for d in doctors
+        ],
+        "patients": [
+            {
+                "id": p.id,
+                "user_id": p.user_id,
+                "age": p.age,
+            }
+            for p in patients
+        ],
     }
 
 
@@ -1555,6 +1592,7 @@ def get_my_patient_id(
         "patient_email": email
 
     }
+
 
 
 
