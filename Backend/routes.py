@@ -884,7 +884,50 @@ def admin_remove_doctor(doctor_id: int, user=Depends(get_current_user), db: Sess
     db.add(usr); db.commit()
     return {"status": "blacklisted"}
 
+from sqlalchemy import delete
+from datetime import datetime
 
+@app.delete("/admin/doctors/delete/{doctor_id}")
+def admin_delete_doctor(
+    doctor_id: int,
+    user=Depends(get_current_user),
+    db: Session = Depends(get_session),
+):
+    require_admin(user)
+
+    doctor = db.get(Doctor, doctor_id)
+    if not doctor:
+        raise HTTPException(status_code=404, detail="Doctor not found")
+
+    # 🔒 OPTIONAL GUARD: block delete if future appointments exist
+    has_future = db.exec(
+        select(Appointment).where(
+            Appointment.doctor_id == doctor_id,
+            Appointment.appointment_date > datetime.utcnow()
+        )
+    ).first()
+
+    if has_future:
+        raise HTTPException(
+            status_code=400,
+            detail="Doctor has future appointments and cannot be deleted"
+        )
+
+    # 1️⃣ Delete dependent rows (past appointments)
+    db.exec(
+        delete(Appointment).where(Appointment.doctor_id == doctor_id)
+    )
+
+    # 2️⃣ Delete doctor
+    db.delete(doctor)
+
+    # 3️⃣ Delete linked user
+    user_obj = db.get(User, doctor.user_id)
+    if user_obj:
+        db.delete(user_obj)
+
+    db.commit()
+    return {"status": "deleted"}
 @app.post("/admin/patients")
 def admin_add_patient(patient: PatientCR, user=Depends(get_current_user), db: Session = Depends(get_session)):
     require_admin(user)
@@ -922,7 +965,7 @@ def admin_update_patient(patient_id: int, payload: PatientUpdate, user=Depends(g
 
 
 @app.delete("/admin/patients/{patient_id}")
-def admin_remove_patient(patient_id: int, user=Depends(get_current_user), db: Session = Depends(get_session)):
+def admin_blacklists_patient(patient_id: int, user=Depends(get_current_user), db: Session = Depends(get_session)):
     require_admin(user)
     pat = db.get(Patient, patient_id)
     if not pat:
@@ -932,7 +975,33 @@ def admin_remove_patient(patient_id: int, user=Depends(get_current_user), db: Se
     db.add(usr); db.commit()
     return {"status": "blacklisted"}
 
+@app.delete("/admin/patients/delete/{patient_id}")
+def admin_deletes_patient(
+    patient_id: int,
+    user=Depends(get_current_user),
+    db: Session = Depends(get_session),
+):
+    require_admin(user)
 
+    patient = db.get(Patient, patient_id)
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+    # 1️⃣ Delete dependent rows manually
+    db.exec(
+        delete(Appointment).where(Appointment.patient_id == patient_id)
+    )
+
+    # 2️⃣ Delete patient
+    db.delete(patient)
+
+    # 3️⃣ Delete linked user
+    user_obj = db.get(User, patient.user_id)
+    if user_obj:
+        db.delete(user_obj)
+
+    db.commit()
+    return {"status": "deleted"}
 # Doctor endpoints
 class StatusUpdate(BaseModel):
     status: str
@@ -1526,6 +1595,7 @@ def get_my_patient_id(
         "patient_email": email
 
     }
+
 
 
 
