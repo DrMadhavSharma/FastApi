@@ -116,7 +116,7 @@ async function deleteEntity(kind, id) {
   async function exportSystemCsv() {
   const token = localStorage.getItem("access_token");
 
-  const res = await fetch(
+  const res = await apiFetch(
     "/admin/export-system-csv",
     {
       method: "POST",
