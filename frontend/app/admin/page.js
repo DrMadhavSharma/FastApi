@@ -112,21 +112,23 @@ async function deleteEntity(kind, id) {
   } finally {
     setLoading(false);
   }
-}
-  async function exportSystemCsv() {
-  const token = localStorage.getItem("access_token");
+}async function exportSystemCsv() {
+  try {
+    setExporting(true);
 
-  const res = await apiFetch(
-    "/admin/export-system-csv",
-    {
+    const res = await apiFetch("/admin/export-system-csv", {
       method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-    }
-  );
+    });
 
-  const data = await res.json();
-  pollForCsv(data.task_id);
+    const data = await res;
+    pollForCsv(data.task_id);
+  } catch (e) {
+    setError(e.message || "Export failed");
+  } finally {
+    setExporting(false);
   }
+}
+  
   function pollForCsv(taskId) {
   const token = localStorage.getItem("access_token");
 
