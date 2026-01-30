@@ -1596,7 +1596,143 @@ def get_my_patient_id(
 
     }
 
+#################below starts the csv export implementation for admin#######################
+#1️⃣ Trigger endpoint (FAST – no heavy work)
 
+import uuid
+from fastapi import Depends
+
+@app.post("/admin/export-system-csv")
+async def trigger_system_export(
+    request: Request,
+    user=Depends(get_current_user),
+):
+    """
+    admin clicks button → send request to QStash → QStash calls
+    /export-system-csv/job asynchronously.
+    """
+    require_admin(user)
+
+    body = await request.json()
+    print("RAW BODY:", body)
+
+    # ✅ generate task id
+    task_id = str(uuid.uuid4())
+
+    # optional: track status in-memory (same pattern you used)
+    task_results[task_id] = {"status": "pending", "filename": None}
+
+    print(f"[INFO] Queuing SYSTEM CSV export task: {task_id}")
+
+    # 🔐 QStash token stays HERE (same as your requirement)
+    QSTASH_TOKEN = "eyJVc2VySUQiOiJmODlhM2Q5Ni1lMDIxLTQzZWUtYTU1OS0xODEyNjA4MGY1ZjgiLCJQYXNzd29yZCI6IjMzMjNlMzRmMjc2YTRkZDY5ZGYyNjIwYzE3NWJjZDJlIn0="
+
+    # 🎯 QStash will call THIS endpoint
+    DESTINATION_URL = "https://fastapi-6mjn.onrender.com/admin/export-system-csv/job"
+
+    async with httpx.AsyncClient(timeout=10) as client:
+        res = await client.post(
+            f"https://qstash.upstash.io/v2/publish/{DESTINATION_URL}",
+            headers={
+                "Authorization": f"Bearer {QSTASH_TOKEN}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "task_id": task_id,
+                "requested_by": user["email"],  # optional metadata
+            },
+        )
+
+    if res.status_code != 200:
+        task_results[task_id]["status"] = "failed"
+        return {
+            "task_id": task_id,
+            "status": "failed to queue",
+            "details": res.text,
+        }
+
+    return {
+        "task_id": task_id,
+        "status": "queued"
+    }
+    
+#2️⃣ QStash job endpoint (HEAVY WORK)
+import csv, os
+from datetime import datetime, timedelta
+from sqlmodel import select
+
+EXPORT_DIR = "exports"
+os.makedirs(EXPORT_DIR, exist_ok=True)
+
+@app.post("/admin/export-system-csv/job")
+def export_system_csv_job(
+    payload: dict,
+    db: Session = Depends(get_session)
+):
+    task_id = payload["task_id"]
+
+    filepath = f"{EXPORT_DIR}/system_{task_id}.csv"
+
+    today = datetime.utcnow()
+    week_end = today + timedelta(days=7)
+
+    users = db.exec(select(User)).all()
+    appointments = db.exec(
+        select(Appointment)
+        .where(
+            Appointment.appointment_date >= today,
+            Appointment.appointment_date <= week_end
+        )
+    ).all()
+
+    with open(filepath, "w", newline="") as f:
+        writer = csv.writer(f)
+
+        # USERS
+        writer.writerow(["===== USERS ====="])
+        writer.writerow(["id","username","email","role","is_active","created_at"])
+        for u in users:
+            writer.writerow([
+                u.id, u.username, u.email,
+                u.role.value, u.is_active, u.created_at
+            ])
+
+        writer.writerow([])
+
+        # APPOINTMENTS
+        writer.writerow(["===== UPCOMING APPOINTMENTS (THIS WEEK) ====="])
+        writer.writerow(["id","doctor","patient","date","status"])
+        for a in appointments:
+            writer.writerow([
+                a.id,
+                a.doctor.user.username,
+                a.patient.user.username,
+                a.appointment_date,
+                a.status.value
+            ])
+
+    return {"status": "done", "file": filepath}
+
+#3️⃣ Download endpoint (DIRECT DOWNLOAD)
+from fastapi.responses import FileResponse
+import os
+
+@app.get("/admin/export-system-csv/{task_id}")
+def download_system_csv(
+    task_id: str,
+    user=Depends(get_current_user),
+):
+    require_admin(user)
+
+    path = f"exports/system_{task_id}.csv"
+    if not os.path.exists(path):
+        raise HTTPException(status_code=404, detail="CSV not ready")
+
+    return FileResponse(
+        path,
+        media_type="text/csv",
+        filename=f"system_export_{task_id}.csv"
+    )
 
 
 
