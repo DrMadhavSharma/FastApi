@@ -35,7 +35,7 @@ export default function LoginPage() {
       setUser({
              id: data?.user_id ?? "",
              email: data?.email ?? "",
-             username: data?.username ?? "ppu",
+             username: data?.username ?? "",
              role: data?.role?? ""
              });
       // Simple redirect based on role
