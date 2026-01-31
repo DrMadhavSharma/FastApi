@@ -108,24 +108,6 @@ async function triggerCsvExport() {
 
     fetchData();
   }, []);
-  useEffect(() => {
-  const token = localStorage.getItem("access_token");
-  if (!token) return;
-
-  fetch("https://fastapi-6mjn.onrender.com/me", {
-    headers: { Authorization: `Bearer ${token}` }
-  })
-    .then(res => res.json())
-    .then(data => {
-      setUser({
-        id: data.user_id,
-        email: data.email,
-        username: data.username,
-        role: data.role
-      });
-    })
-    .catch(() => setUser(null));
-}, []);
 
   // Specialization filter
   const handleSpecializationChange = async (e) => {
