@@ -1599,7 +1599,10 @@ def get_my_patient_id(
 
     return {
         "patient_id": patient.id,
-        "patient_email": email
+        "patient_email": email,
+        "user_id": user.id,
+    "username": user.username,
+    "role": user.role.value
 
     }
 
@@ -1734,6 +1737,7 @@ def download_system_csv(
         media_type="text/csv",
         filename=f"system_export_{task_id}.csv"
     )
+
 
 
 
