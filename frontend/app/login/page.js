@@ -1,13 +1,14 @@
 "use client";
 import { useContext, useState } from "react";
 import { UserContext } from "../context/UserContext";
-
+import { useRouter } from "next/navigation";
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const isValid = email.includes("@") && password.length ;
+  const router = useRouter();
   const {user,setUser} = useContext(UserContext)
   async function handleSubmit(e) {
     e.preventDefault();
@@ -40,13 +41,13 @@ export default function LoginPage() {
       // Simple redirect based on role
       const role = data.role;
       if (role === "doctor") {
-        window.location.href = "/doctor";
-      } else if (role === "patient") {
-        window.location.href = "/patient/dashboard";
-      } else if (role === "admin") {
-        window.location.href = "/admin";
-      } else {
-        window.location.href = "/";
+       router.push("/doctor");
+    } else if (role === "patient") {
+       router.push("/patient/dashboard");
+    } else if (role === "admin") {
+       router.push("/admin");
+    } else {
+       router.push("/");
       }
     } catch (err) {
       setError(err.message || "Something went wrong");
