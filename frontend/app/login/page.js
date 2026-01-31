@@ -32,9 +32,11 @@ export default function LoginPage() {
         
       }
       setUser({
-        email : data?.email ?? "",
-        id : data?.user_id ?? ""
-      })
+             id: data?.user_id?? "",
+             email: data?.email?? "",
+             username: data?.username?? "",
+             role: data?.role?? ""
+             });
       // Simple redirect based on role
       const role = data.role;
       if (role === "doctor") {
