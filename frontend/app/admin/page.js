@@ -129,11 +129,7 @@ async function deleteEntity(kind, id) {
   }
 }
   
-  function pollForCsv(taskId) {
-  const token = localStorage.getItem("access_token");
-
-  const interval = setInterval(async () => {
-    const res = await apiFetch(
+  const res = await fetch(
   `https://fastapi-6mjn.onrender.com/admin/export-system-csv/${taskId}`,
   {
     method: "GET",
@@ -143,20 +139,17 @@ async function deleteEntity(kind, id) {
   }
 );
 
-    if (res.ok) {
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
+if (!res.ok) throw new Error("CSV not ready");
 
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "system_export.csv";
-      a.click();
+const blob = await res.blob();
+const url = window.URL.createObjectURL(blob);
 
-      window.URL.revokeObjectURL(url);
-      clearInterval(interval);
-    }
-  }, 3000); // poll every 3 sec
-  }
+const a = document.createElement("a");
+a.href = url;
+a.download = `system_export_${taskId}.csv`;
+a.click();
+
+window.URL.revokeObjectURL(url);
   
   const upcoming = useMemo(() => {
     const now = new Date();
