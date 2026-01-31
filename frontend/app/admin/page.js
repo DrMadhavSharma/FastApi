@@ -129,28 +129,24 @@ async function deleteEntity(kind, id) {
   }
 }
   
-  const res = await fetch(
-  `https://fastapi-6mjn.onrender.com/admin/export-system-csv/${taskId}`,
-  {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  }
-);
+  function pollForCsv(taskId) {
+  const interval = setInterval(async () => {
+    const res = await fetch(`https://fastapi-6mjn.onrender.com/admin/export-system-csv/${taskId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
 
-if (!res.ok) throw new Error("CSV not ready");
-
-const blob = await res.blob();
-const url = window.URL.createObjectURL(blob);
-
-const a = document.createElement("a");
-a.href = url;
-a.download = `system_export_${taskId}.csv`;
-a.click();
-
-window.URL.revokeObjectURL(url);
-  
+    if (res.ok) {
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "system_export.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+      clearInterval(interval);
+    }
+  }, 3000);
+}
   const upcoming = useMemo(() => {
     const now = new Date();
     return appointments.filter(a => new Date(a.appointment_date) > now);
