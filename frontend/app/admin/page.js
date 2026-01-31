@@ -130,6 +130,7 @@ async function deleteEntity(kind, id) {
 }
   
   function pollForCsv(taskId) {
+  const token = localStorage.getItem("access_token");
   const interval = setInterval(async () => {
     const res = await fetch(`https://fastapi-6mjn.onrender.com/admin/export-system-csv/${taskId}`, {
       headers: { Authorization: `Bearer ${token}` },
