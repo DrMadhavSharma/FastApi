@@ -32,9 +32,9 @@ export default function LoginPage() {
         
       }
       setUser({
-             id: data?.user_id?? "",
-             email: data?.email?? "",
-             username: data?.username?? "",
+             id: data?.user_id ?? "",
+             email: data?.email ?? "",
+             username: data?.username ?? "ppu",
              role: data?.role?? ""
              });
       // Simple redirect based on role
