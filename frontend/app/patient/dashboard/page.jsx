@@ -235,7 +235,7 @@ async function triggerCsvExport() {
 
   return (
     <div className="main container">
-      <h1 style={{ textAlign: "center", marginBottom: "24px" }}>👋 Welcome, {user.name}</h1>
+      <h1 style={{ textAlign: "center", marginBottom: "24px" }}>👋 Welcome, {user?.username}</h1>
 
       {/* Specialization filter */}
       <div className="section" style={{ marginBottom: "20px" }}>
