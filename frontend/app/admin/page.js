@@ -133,10 +133,15 @@ async function deleteEntity(kind, id) {
   const token = localStorage.getItem("access_token");
 
   const interval = setInterval(async () => {
-    const res = await fetch(
-      `/admin/export-system-csv/${taskId}`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+    const res = await apiFetch(
+  `https://fastapi-6mjn.onrender.com/admin/export-system-csv/${taskId}`,
+  {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  }
+);
 
     if (res.ok) {
       const blob = await res.blob();
