@@ -93,6 +93,7 @@ def login_page(user: Login, db: Session = Depends(get_session)):
         "email": db_user.email,
         "role": db_user.role.value,
         "user_id": db_user.id              # optional but useful
+        "username": db_user.username
     }
 
 # ----------------------
@@ -1733,6 +1734,7 @@ def download_system_csv(
         media_type="text/csv",
         filename=f"system_export_{task_id}.csv"
     )
+
 
 
 
