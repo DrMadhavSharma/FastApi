@@ -1232,7 +1232,7 @@ from sqlalchemy.orm import Session
 from models import get_session, Patient, Appointment
 from utils.email_utils import send_email
 
-# app = FastAPI()
+
 
 # ----------------- In-memory task tracking -----------------
 # Each task_id maps to a dict: {"status": "pending|completed|failed", "filename": str}
@@ -1244,60 +1244,8 @@ class ExportCSVRequest(BaseModel):
     patient_id: int
     patient_email: EmailStr
     task_id: str # task_id from QStash trigger
+
 # # ----------------- Worker route: generates CSV and sends email -----------------
-# @app.post("/export-csv")
-# def export_csv_job(
-#     payload: ExportCSVRequest,
-#     session: Session = Depends(get_session)
-# ):
-#     """Generate CSV of a patient's treatments, email it, and store for download."""
-#     task_results[payload.task_id] = {"status": "pending", "filename": None}
-#     try:
-#         patient = session.query(Patient).filter(Patient.id == payload.patient_id).first()
-#         if not patient:
-#             task_results[payload.task_id]["status"] = "failed"
-#             raise HTTPException(status_code=404, detail="Patient not found")
-
-#         appointments = session.query(Appointment).filter(
-#             Appointment.patient_id == payload.patient_id
-#         ).all()
-
-#         if not appointments:
-#             task_results[payload.task_id]["status"] = "completed"
-#             return {"message": "No treatment records found"}
-
-#         # Build CSV
-#         filename = f"treatments_{payload.patient_id}_{payload.task_id}.csv"
-#         filepath = os.path.join(CSV_STORAGE_DIR, filename)
-
-#         with open(filepath, "w", newline="") as csvfile:
-#             writer = csv.DictWriter(
-#                 csvfile,
-#                 fieldnames=["Doctor", "Date", "Diagnosis/Notes", "Treatment"]
-#             )
-#             writer.writeheader()
-#             for a in appointments:
-#                 writer.writerow({
-#                     "Doctor": a.doctor.user.username,
-#                     "Date": a.appointment_date,
-#                     "Diagnosis/Notes": a.notes or "",
-#                     "Treatment": a.notes or "",
-#                 })
-
-#         # Send email
-#         csv_bytes = open(filepath, "rb").read()
-#         send_email(patient_email, csv_bytes, filename)
-
-#         # Update task result
-#         task_results[task_id] = {"status": "completed", "filename": filename}
-#         print(f"[OK] CSV sent to {patient_email} and stored as {filename}")
-
-#         return {"message": f"CSV sent to {patient_email}"}
-
-#     except Exception as e:
-#         task_results[task_id]["status"] = "failed"
-#         print(f"[FAIL] Task {task_id}: {e}")
-#         raise HTTPException(status_code=500, detail=str(e))
 @app.post("/export-csv")
 def export_csv_job(
     payload: ExportCSVRequest,
@@ -1370,10 +1318,6 @@ def export_csv_job(
         print(f"[FAIL] Task {payload.task_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-# @app.post("/export-csv")
-# async def export_csv_job(request: Request):
-#     raw = await request.json()
-#     print("RAW BODY FROM QSTASH:", raw)
 
 # ----------------- Trigger route: patient clicks button -----------------
 @app.post("/trigger-export")
@@ -1431,28 +1375,7 @@ async def trigger_export(request: Request):
 
     return {"task_id": task_id, "status": "queued"}
 
-# # ----------------- Status route: check CSV export status -----------------
-# @app.get("/csv-status/{task_id}")
-# def csv_status(task_id: str):
-#     task = task_results.get(task_id)
-#     if not task:
-#         return {"task_id": task_id, "status": "unknown"}
-#     return {"task_id": task_id, "status": task["status"], "filename": task["filename"]}
-
-
-# # ----------------- Download route: admin downloads CSV -----------------
-# @app.get("/download-csv/{task_id}")
-# def download_csv(task_id: str):
-#     task = task_results.get(task_id)
-#     if not task or task["status"] != "completed":
-#         raise HTTPException(status_code=404, detail="CSV not ready for download")
-    
-#     filepath = os.path.join(CSV_STORAGE_DIR, task["filename"])
-#     if not os.path.exists(filepath):
-#         raise HTTPException(status_code=404, detail="CSV file not found")
-
-#     return FileResponse(filepath, filename=task["filename"], media_type="text/csv")
-
+####----------Doctors Monthly Report,runs if we have the appointments scheduled in btw that month --#
 from datetime import date
 import calendar
 @app.post("/monthly-report")
@@ -1525,24 +1448,12 @@ def monthly_report_job(session: Session = Depends(get_session)):
 
 
 
-from utils.qstash_utils import schedule_job
-import os
+
 
 BACKEND_URL = os.getenv("BACKEND_URL","https://fastapi-6mjn.onrender.com")
 
-def register_jobs():
-    # Daily reminders → every day at 8AM
-    daily_endpoint = f"{BACKEND_URL}/daily-reminder"
-    print("Scheduling daily reminders...")
-    print(schedule_job(daily_endpoint, "* * * * *"))
 
-    # Monthly reports → first day of month at 8AM
-    monthly_endpoint = f"{BACKEND_URL}/monthly-report"
-    print("Scheduling monthly reports...")
-    print(schedule_job(monthly_endpoint, "* * * * *"))
-
-if __name__ == "__main__":
-    register_jobs()
+#####------Gives a msg thru email to the patients-------######
 @app.post("/daily-reminder")
 def daily_reminder_job(session: Session = Depends(get_session)):
     """Send daily reminders to patients with appointments today."""
@@ -1737,6 +1648,7 @@ def download_system_csv(
         media_type="text/csv",
         filename=f"system_export_{task_id}.csv"
     )
+
 
 
 
