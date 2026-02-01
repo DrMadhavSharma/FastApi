@@ -11,7 +11,8 @@ def send_email(to_address, subject, message, content="html", attachment_file=Non
         "sender": {"email": "madhavsharma8194@gmail.com"},  # must be verified
         "subject": subject,
     }
-
+    print("Sending email to:", to_address)
+    print("Attachment:", attachment_file)
     # Content
     if content == "html":
         email_data["htmlContent"] = message
@@ -41,3 +42,4 @@ def send_email(to_address, subject, message, content="html", attachment_file=Non
         print("Brevo reason:", e.reason)
         print("Brevo body:", e.body)
         raise
+
