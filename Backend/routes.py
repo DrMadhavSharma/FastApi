@@ -1472,7 +1472,7 @@ def monthly_report_job(session: Session = Depends(get_session)):
         send_email(
             to_address=doc.user.email,
             subject="Monthly Activity Report",
-            message="Please find your monthly activity report attached.",
+            message=html_report,
             content="html",
             attachment_file=filepath
         )
@@ -1681,6 +1681,7 @@ def download_system_csv(
         media_type="text/csv",
         filename=f"system_export_{task_id}.csv"
     )
+
 
 
 
