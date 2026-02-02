@@ -1061,7 +1061,7 @@ def doctor_set_availability(payload: AvailabilityPayload, user=Depends(get_curre
 
 @app.get("/doctor/patient/{patient_id}/history")
 def get_patient_history(patient_id: int, user=Depends(get_current_user), db: Session = Depends(get_session)):
-    usr, doc = get_doctor_user(db, user["username"]) 
+    usr, doc = get_doctor_user(db, user["email"]) 
     import json
     appts = db.execute(select(Appointment).where(Appointment.patient_id == patient_id, Appointment.doctor_id == doc.id)).scalars().all()
     history = []
@@ -1620,6 +1620,7 @@ def download_system_csv(
         media_type="text/csv",
         filename=f"system_export_{task_id}.csv"
     )
+
 
 
 
