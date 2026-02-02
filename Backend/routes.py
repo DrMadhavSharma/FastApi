@@ -54,19 +54,7 @@ def authenticate_user(db: Session,email: str, password: str):
 @app.get("/")
 def index_page():
     return {"message": "Welcome to the Hospital Management Application!"}
-# @app.post("/login")
-# def login_page(user:Login,db:Session=Depends(get_session)):
-#     db_user=authenticate_user(db , user.email, user.password)
-#     if db_user:
-#         if db_user.role == RoleEnum.doctor:
-#             # doctor =db.queryute(select(Doctor).where(Doctor.user_id==db_user.id)).scalar_one_or_none()
-#             return RedirectResponse(url=f"/dashboard/Doctor/{db_user.id}", status_code=302) 
-#         elif db_user.role == RoleEnum.patient:
-#             # patient = db.queryute(select(Patient).where(Patient.user_id==db_user.id)).scalar_one_or_none()
-#             return RedirectResponse(url=f"/dashboard/Patient/{db_user.id}", status_code=302) 
-#     else:
-#         raise HTTPException(status_code=404, detail="Invalid email or password")
-#     return {"message": "Login Page"}
+
 @app.post("/login")
 def login_page(user: Login, db: Session = Depends(get_session)):
     enforce_user_limit(db)
@@ -298,23 +286,7 @@ def p_register_page(patient:PatientCR,db :Session =Depends(get_session)):
         # "user_id": db_user.id,
         "Patient_id": db_Patient.id
     }
-# @app.get("/dashboard/Doctor/{user_id}",response_model=DoctorCombined)
-# def doctor_dashboard(user_id: int, db: Session = Depends(get_session)):
-#     user= db.get(User, user_id)
-#     doctor=db.queryute(select(Doctor).where(Doctor.user_id==user_id)).scalar_one_or_none()
-#     return DoctorCombined(
-#         user=user,
-#         doctor=doctor
-#     )
 
-# @app.get("/dashboard/Patient/{user_id}",response_model=PatientCombined)
-# def patient_dashboard(user_id: int, db: Session = Depends(get_session)):
-#     user = db.get(User, user_id)
-#     patient=db.queryute(select(Patient).where(Patient.user_id==user_id)).scalar_one_or_none()
-#     return PatientCombined(
-#         user=user,
-#         patient=patient
-#     )
 @app.get("/dashboard/doctor")
 def doctor_dashboard(user=Depends(get_current_user)):
     if "doctor" not in user["roles"]:
@@ -1648,6 +1620,7 @@ def download_system_csv(
         media_type="text/csv",
         filename=f"system_export_{task_id}.csv"
     )
+
 
 
 
