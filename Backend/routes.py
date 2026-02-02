@@ -704,7 +704,7 @@ from pydantic_models import *
 from config import create_access_token, verify_token, get_current_user, hash_password
 from pydantic import BaseModel, EmailStr
 
-
+'''
 def authenticate_user(db: Session, email: str, password: str):
     stmt = select(User).where(User.email == email)
     db_user = db.execute(stmt).scalar_one_or_none()
@@ -953,7 +953,7 @@ def admin_blacklists_patient(patient_id: int, user=Depends(get_current_user), db
     usr.is_active = False
     db.add(usr); db.commit()
     return {"status": "blacklisted"}
-
+'''
 @app.delete("/admin/patients/delete/{patient_id}")
 def admin_deletes_patient(
     patient_id: int,
@@ -1049,7 +1049,7 @@ def doctor_patients(user=Depends(get_current_user), db: Session = Depends(get_se
         out.append({"id": p.id, "user_id": p.user_id, "username": u.username, "age": p.age, "address": p.address, "medical_history": p.medical_history})
     return out
 
-
+'''
 @app.put("/doctor/availability")
 def doctor_set_availability(payload: AvailabilityPayload, user=Depends(get_current_user), db: Session = Depends(get_session)):
     usr, doc = get_doctor_user(db, user["username"]) 
@@ -1057,7 +1057,7 @@ def doctor_set_availability(payload: AvailabilityPayload, user=Depends(get_curre
     doc.availability = json.dumps(payload.days)
     db.add(doc); db.commit()
     return {"status": "saved"}
-
+'''
 
 @app.get("/doctor/patient/{patient_id}/history")
 def get_patient_history(patient_id: int, user=Depends(get_current_user), db: Session = Depends(get_session)):
@@ -1620,6 +1620,7 @@ def download_system_csv(
         media_type="text/csv",
         filename=f"system_export_{task_id}.csv"
     )
+
 
 
 
