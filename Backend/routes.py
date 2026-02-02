@@ -17,7 +17,7 @@ import os
 #######Mounting---files-----Static#######
 from fastapi.staticfiles import StaticFiles
 
-app.mount("/static", StaticFiles(directory="Static"), name="static")
+app.mount("/static", StaticFiles(directory="static"), name="static")
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 EXPORT_DIR = os.path.join(BASE_DIR, "exports")
 
@@ -1684,6 +1684,7 @@ def download_system_csv(
         media_type="text/csv",
         filename=f"system_export_{task_id}.csv"
     )
+
 
 
 
