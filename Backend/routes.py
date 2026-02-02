@@ -157,7 +157,7 @@ def admin_update_doctor(doctor_id: int, payload: DoctorUpdate, user=Depends(get_
     return {"status": "updated"}
 
 @app.delete("/admin/doctors/{doctor_id}")
-def admin_remove_doctor(doctor_id: int, user=Depends(get_current_user), db: Session = Depends(get_session)):
+def admin_blacklist_doctor(doctor_id: int, user=Depends(get_current_user), db: Session = Depends(get_session)):
     require_admin(user)
     doc = db.get(Doctor, doctor_id)
     if not doc:
@@ -767,7 +767,7 @@ def admin_list_appointments(user=Depends(get_current_user), db: Session = Depend
             "notes": a.notes,
         })
     return result
-
+'''
 
 @app.get("/admin/search")
 def admin_search(
@@ -818,7 +818,7 @@ def admin_search(
         ],
     }
 
-
+'''
 @app.post("/admin/doctors")
 def admin_add_doctor(doctor: DoctorCR, user=Depends(get_current_user), db: Session = Depends(get_session)):
     require_admin(user)
@@ -865,7 +865,7 @@ def admin_remove_doctor(doctor_id: int, user=Depends(get_current_user), db: Sess
     usr.is_active = False
     db.add(usr); db.commit()
     return {"status": "blacklisted"}
-
+'''
 from sqlalchemy import delete
 from datetime import datetime
 
@@ -910,6 +910,7 @@ def admin_delete_doctor(
 
     db.commit()
     return {"status": "deleted"}
+    '''
 @app.post("/admin/patients")
 def admin_add_patient(patient: PatientCR, user=Depends(get_current_user), db: Session = Depends(get_session)):
     require_admin(user)
@@ -944,7 +945,7 @@ def admin_update_patient(patient_id: int, payload: PatientUpdate, user=Depends(g
     if payload.medical_history is not None: pat.medical_history = payload.medical_history
     db.add_all([usr, pat]); db.commit()
     return {"status": "updated"}
-
+'''
 
 @app.delete("/admin/patients/{patient_id}")
 def admin_blacklists_patient(patient_id: int, user=Depends(get_current_user), db: Session = Depends(get_session)):
@@ -956,7 +957,7 @@ def admin_blacklists_patient(patient_id: int, user=Depends(get_current_user), db
     usr.is_active = False
     db.add(usr); db.commit()
     return {"status": "blacklisted"}
-'''
+
 @app.delete("/admin/patients/delete/{patient_id}")
 def admin_deletes_patient(
     patient_id: int,
@@ -1684,6 +1685,7 @@ def download_system_csv(
         media_type="text/csv",
         filename=f"system_export_{task_id}.csv"
     )
+
 
 
 
