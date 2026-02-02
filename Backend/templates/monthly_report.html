@@ -17,7 +17,7 @@
 <!-- Logo -->
 <tr>
 <td align="center" style="padding-bottom:15px;">
-    <img src="https://fastapi-6mjn.onrender.com/templates/logo.png"
+    <img src="https://fastapi-6mjn.onrender.com/static/logo.png"
          alt="Company Logo"
          width="140"
          style="display:block;">
@@ -68,7 +68,15 @@
     <td>{{ loop.index }}</td>
     <td>{{ a.patient.user.username }}</td>
     <td>{{ a.appointment_date }}</td>
-    <td>{{ a.notes or "-" }}</td>
+    <td>
+{% if a.notes %}
+Diagnosis: {{ a.notes.diagnosis }}<br>
+Treatment: {{ a.notes.treatment }}<br>
+Prescriptions: {{ a.notes.prescriptions or "-" }}
+{% else %}
+-
+{% endif %}
+</td>
 </tr>
 {% endfor %}
 
@@ -94,7 +102,7 @@
 <!-- Stamp -->
 <tr>
 <td align="right" style="padding-top:20px;">
-    <img src="https://fastapi-6mjn.onrender.com/templates/stamp.png"
+    <img src="https://fastapi-6mjn.onrender.com/static/stamp.png"
          alt="Official Stamp"
          width="90"
          style="display:block;">
