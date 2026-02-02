@@ -1079,7 +1079,7 @@ def get_patient_history(patient_id: int, user=Depends(get_current_user), db: Ses
 
 @app.post("/doctor/patient/{patient_id}/history")
 def add_patient_history(patient_id: int, payload: HistoryEntry, user=Depends(get_current_user), db: Session = Depends(get_session)):
-    usr, doc = get_doctor_user(db, user["username"]) 
+    usr, doc = get_doctor_user(db, user["email"]) 
     appt = db.execute(select(Appointment).where(Appointment.patient_id == patient_id, Appointment.doctor_id == doc.id).order_by(Appointment.appointment_date.desc())).scalars().first()
     if not appt:
         raise HTTPException(status_code=404, detail="No appointment to attach history")
@@ -1620,6 +1620,7 @@ def download_system_csv(
         media_type="text/csv",
         filename=f"system_export_{task_id}.csv"
     )
+
 
 
 
