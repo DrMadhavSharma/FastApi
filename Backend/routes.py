@@ -7,8 +7,9 @@ from fastapi import Depends, HTTPException
 from sqlmodel import  Session, select 
 from models import * 
 from pydantic_models import *
-from config import create_access_token , verify_token , get_current_user
+from config import create_access_token , verify_token , get_current_user, hash_password
 from sqlalchemy import func
+from pydantic import BaseModel, EmailStr
 import json
 from dateutil import parser
 from typing import List, Dict
@@ -118,6 +119,54 @@ def admin_list_appointments(user=Depends(get_current_user), db: Session = Depend
         })
     return result
 
+@app.get("/admin/search")
+def admin_search(
+    q: str,
+    user=Depends(get_current_user),
+    db: Session = Depends(get_session)
+):
+    require_admin(user)
+
+    users = db.exec(
+        select(User).where(User.username.ilike(f"%{q}%"))
+    ).all()
+
+    doctors = db.exec(
+        select(Doctor).join(User).where(User.username.ilike(f"%{q}%"))
+    ).all()
+
+    patients = db.exec(
+        select(Patient).join(User).where(User.username.ilike(f"%{q}%"))
+    ).all()
+
+    return {
+        "users": [
+            {
+                "id": u.id,
+                "username": u.username,
+                "email": u.email,
+                "role": u.role.value,
+                "is_active": u.is_active,
+            }
+            for u in users
+        ],
+        "doctors": [
+            {
+                "id": d.id,
+                "user_id": d.user_id,
+                "specialization": d.specialization,
+            }
+            for d in doctors
+        ],
+        "patients": [
+            {
+                "id": p.id,
+                "user_id": p.user_id,
+                "age": p.age,
+            }
+            for p in patients
+        ],
+    }
 
 
 from pydantic_models import DoctorUpdate, PatientUpdate
@@ -167,6 +216,51 @@ def admin_blacklist_doctor(doctor_id: int, user=Depends(get_current_user), db: S
     db.add(usr); db.commit()
     return {"status": "blacklisted"}
 
+from sqlalchemy import delete
+from datetime import datetime
+
+@app.delete("/admin/doctors/delete/{doctor_id}")
+def admin_delete_doctor(
+    doctor_id: int,
+    user=Depends(get_current_user),
+    db: Session = Depends(get_session),
+):
+    require_admin(user)
+
+    doctor = db.get(Doctor, doctor_id)
+    if not doctor:
+        raise HTTPException(status_code=404, detail="Doctor not found")
+
+    # 🔒 OPTIONAL GUARD: block delete if future appointments exist
+    has_future = db.exec(
+        select(Appointment).where(
+            Appointment.doctor_id == doctor_id,
+            Appointment.appointment_date > datetime.utcnow()
+        )
+    ).first()
+
+    if has_future:
+        raise HTTPException(
+            status_code=400,
+            detail="Doctor has future appointments and cannot be deleted"
+        )
+
+    # 1️⃣ Delete dependent rows (past appointments)
+    db.exec(
+        delete(Appointment).where(Appointment.doctor_id == doctor_id)
+    )
+
+    # 2️⃣ Delete doctor
+    db.delete(doctor)
+
+    # 3️⃣ Delete linked user
+    user_obj = db.get(User, doctor.user_id)
+    if user_obj:
+        db.delete(user_obj)
+
+    db.commit()
+    return {"status": "deleted"}
+    
 @app.post("/admin/patients")
 def admin_add_patient(patient: PatientCR, user=Depends(get_current_user), db: Session = Depends(get_session)):
     require_admin(user)
@@ -200,9 +294,9 @@ def admin_update_patient(patient_id: int, payload: PatientUpdate, user=Depends(g
     if payload.medical_history is not None: pat.medical_history = payload.medical_history
     db.add_all([usr, pat]); db.commit()
     return {"status": "updated"}
-'''
+    
 @app.delete("/admin/patients/{patient_id}")
-def admin_remove_patient(patient_id: int, user=Depends(get_current_user), db: Session = Depends(get_session)):
+def admin_blacklists_patient(patient_id: int, user=Depends(get_current_user), db: Session = Depends(get_session)):
     require_admin(user)
     pat = db.get(Patient, patient_id)
     if not pat:
@@ -211,7 +305,35 @@ def admin_remove_patient(patient_id: int, user=Depends(get_current_user), db: Se
     usr.is_active = False
     db.add(usr); db.commit()
     return {"status": "blacklisted"}
-'''
+
+@app.delete("/admin/patients/delete/{patient_id}")
+def admin_deletes_patient(
+    patient_id: int,
+    user=Depends(get_current_user),
+    db: Session = Depends(get_session),
+):
+    require_admin(user)
+
+    patient = db.get(Patient, patient_id)
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+    # 1️⃣ Delete dependent rows manually
+    db.exec(
+        delete(Appointment).where(Appointment.patient_id == patient_id)
+    )
+
+    # 2️⃣ Delete patient
+    db.delete(patient)
+
+    # 3️⃣ Delete linked user
+    user_obj = db.get(User, patient.user_id)
+    if user_obj:
+        db.delete(user_obj)
+
+    db.commit()
+    return {"status": "deleted"}
+    
 @app.post("/register/doctor")
 def register_doctor(doctor: DoctorCR, db: Session = Depends(get_session)):
     enforce_user_limit(db)
@@ -694,155 +816,7 @@ def update_availability(
     db.refresh(doctor)
     
     return {"message": "Availability updated successfully", "availability": days}
-
-
-from main import app
-from typing import Annotated
-from datetime import datetime, timedelta
-from fastapi import Depends, HTTPException
-from sqlmodel import Session, select
-from sqlalchemy import func
-
-from models import *
-from pydantic_models import *
-from config import create_access_token, verify_token, get_current_user, hash_password
-from pydantic import BaseModel, EmailStr
-
-
-
-@app.get("/admin/search")
-def admin_search(
-    q: str,
-    user=Depends(get_current_user),
-    db: Session = Depends(get_session)
-):
-    require_admin(user)
-
-    users = db.exec(
-        select(User).where(User.username.ilike(f"%{q}%"))
-    ).all()
-
-    doctors = db.exec(
-        select(Doctor).join(User).where(User.username.ilike(f"%{q}%"))
-    ).all()
-
-    patients = db.exec(
-        select(Patient).join(User).where(User.username.ilike(f"%{q}%"))
-    ).all()
-
-    return {
-        "users": [
-            {
-                "id": u.id,
-                "username": u.username,
-                "email": u.email,
-                "role": u.role.value,
-                "is_active": u.is_active,
-            }
-            for u in users
-        ],
-        "doctors": [
-            {
-                "id": d.id,
-                "user_id": d.user_id,
-                "specialization": d.specialization,
-            }
-            for d in doctors
-        ],
-        "patients": [
-            {
-                "id": p.id,
-                "user_id": p.user_id,
-                "age": p.age,
-            }
-            for p in patients
-        ],
-    }
-
-from sqlalchemy import delete
-from datetime import datetime
-
-@app.delete("/admin/doctors/delete/{doctor_id}")
-def admin_delete_doctor(
-    doctor_id: int,
-    user=Depends(get_current_user),
-    db: Session = Depends(get_session),
-):
-    require_admin(user)
-
-    doctor = db.get(Doctor, doctor_id)
-    if not doctor:
-        raise HTTPException(status_code=404, detail="Doctor not found")
-
-    # 🔒 OPTIONAL GUARD: block delete if future appointments exist
-    has_future = db.exec(
-        select(Appointment).where(
-            Appointment.doctor_id == doctor_id,
-            Appointment.appointment_date > datetime.utcnow()
-        )
-    ).first()
-
-    if has_future:
-        raise HTTPException(
-            status_code=400,
-            detail="Doctor has future appointments and cannot be deleted"
-        )
-
-    # 1️⃣ Delete dependent rows (past appointments)
-    db.exec(
-        delete(Appointment).where(Appointment.doctor_id == doctor_id)
-    )
-
-    # 2️⃣ Delete doctor
-    db.delete(doctor)
-
-    # 3️⃣ Delete linked user
-    user_obj = db.get(User, doctor.user_id)
-    if user_obj:
-        db.delete(user_obj)
-
-    db.commit()
-    return {"status": "deleted"}
-
-
-@app.delete("/admin/patients/{patient_id}")
-def admin_blacklists_patient(patient_id: int, user=Depends(get_current_user), db: Session = Depends(get_session)):
-    require_admin(user)
-    pat = db.get(Patient, patient_id)
-    if not pat:
-        raise HTTPException(status_code=404, detail="Patient not found")
-    usr = db.get(User, pat.user_id)
-    usr.is_active = False
-    db.add(usr); db.commit()
-    return {"status": "blacklisted"}
-
-@app.delete("/admin/patients/delete/{patient_id}")
-def admin_deletes_patient(
-    patient_id: int,
-    user=Depends(get_current_user),
-    db: Session = Depends(get_session),
-):
-    require_admin(user)
-
-    patient = db.get(Patient, patient_id)
-    if not patient:
-        raise HTTPException(status_code=404, detail="Patient not found")
-
-    # 1️⃣ Delete dependent rows manually
-    db.exec(
-        delete(Appointment).where(Appointment.patient_id == patient_id)
-    )
-
-    # 2️⃣ Delete patient
-    db.delete(patient)
-
-    # 3️⃣ Delete linked user
-    user_obj = db.get(User, patient.user_id)
-    if user_obj:
-        db.delete(user_obj)
-
-    db.commit()
-    return {"status": "deleted"}
+    
 # Doctor endpoints
 class StatusUpdate(BaseModel):
     status: str
@@ -1543,6 +1517,7 @@ def download_system_csv(
         media_type="text/csv",
         filename=f"system_export_{task_id}.csv"
     )
+
 
 
 
