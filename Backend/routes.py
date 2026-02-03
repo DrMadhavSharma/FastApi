@@ -707,67 +707,7 @@ from pydantic_models import *
 from config import create_access_token, verify_token, get_current_user, hash_password
 from pydantic import BaseModel, EmailStr
 
-'''
-def authenticate_user(db: Session, email: str, password: str):
-    stmt = select(User).where(User.email == email)
-    db_user = db.execute(stmt).scalar_one_or_none()
-    if not db_user:
-        return None
-    from config import verify_password as _verify
-    if not _verify(password, db_user.password):
-        return None
-    return db_user
 
-
-@app.get("/")
-def index_page():
-    return {"message": "Welcome to the Hospital Management Application!"}
-
-
-@app.post("/login")
-def login_page(user: Login, db: Session = Depends(get_session)):
-    db_user = authenticate_user(db, user.email, user.password)
-    if not db_user:
-        raise HTTPException(status_code=404, detail="Invalid email or password")
-    access_token_expires = timedelta(minutes=30)
-    access_token = create_access_token(
-        data={"sub": db_user.email, "roles": [db_user.role.value]},
-        expires_delta=access_token_expires,
-    )
-    return {"access_token": access_token, "token_type": "bearer", "role": db_user.role.value}
-
-
-# Admin endpoints
-def require_admin(user):
-    if "admin" not in user.get("roles", []):
-        raise HTTPException(status_code=403, detail="Admin only")
-
-
-@app.get("/admin/summary")
-def admin_summary(user=Depends(get_current_user), db: Session = Depends(get_session)):
-    require_admin(user)
-    total_doctors = db.query(func.count(Doctor.id)).scalar() or 0
-    total_patients = db.query(func.count(Patient.id)).scalar() or 0
-    total_appointments = db.query(func.count(Appointment.id)).scalar() or 0
-    return {"doctors": total_doctors, "patients": total_patients, "appointments": total_appointments}
-
-
-@app.get("/admin/appointments")
-def admin_list_appointments(user=Depends(get_current_user), db: Session = Depends(get_session)):
-    require_admin(user)
-    appts = db.query(Appointment).order_by(Appointment.appointment_date.desc()).all()
-    result = []
-    for a in appts:
-        result.append({
-            "id": a.id,
-            "doctor_id": a.doctor_id,
-            "patient_id": a.patient_id,
-            "appointment_date": a.appointment_date,
-            "status": a.status.value,
-            "notes": a.notes,
-        })
-    return result
-'''
 
 @app.get("/admin/search")
 def admin_search(
@@ -818,54 +758,6 @@ def admin_search(
         ],
     }
 
-'''
-@app.post("/admin/doctors")
-def admin_add_doctor(doctor: DoctorCR, user=Depends(get_current_user), db: Session = Depends(get_session)):
-    require_admin(user)
-    existing_user = db.execute(select(User).where(User.email == doctor.email)).scalar_one_or_none()
-    if existing_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
-    db_user = User(
-        username=doctor.username,
-        email=doctor.email,
-        password=hash_password(doctor.password),
-        role=RoleEnum.doctor,
-        is_active=True,
-    )
-    db.add(db_user); db.commit(); db.refresh(db_user)
-    db_doctor = Doctor(user_id=db_user.id, specialization=doctor.specialization, bio=doctor.bio, availability=doctor.availability)
-    db.add(db_doctor); db.commit(); db.refresh(db_doctor)
-    return {"id": db_doctor.id}
-
-
-@app.put("/admin/doctors/{doctor_id}")
-def admin_update_doctor(doctor_id: int, payload: DoctorUpdate, user=Depends(get_current_user), db: Session = Depends(get_session)):
-    require_admin(user)
-    doc = db.get(Doctor, doctor_id)
-    if not doc:
-        raise HTTPException(status_code=404, detail="Doctor not found")
-    usr = db.get(User, doc.user_id)
-    if payload.username is not None: usr.username = payload.username
-    if payload.email is not None: usr.email = payload.email
-    if payload.password is not None: usr.password = hash_password(payload.password)
-    if payload.specialization is not None: doc.specialization = payload.specialization
-    if payload.bio is not None: doc.bio = payload.bio
-    if payload.availability is not None: doc.availability = payload.availability
-    db.add_all([usr, doc]); db.commit()
-    return {"status": "updated"}
-
-
-@app.delete("/admin/doctors/{doctor_id}")
-def admin_remove_doctor(doctor_id: int, user=Depends(get_current_user), db: Session = Depends(get_session)):
-    require_admin(user)
-    doc = db.get(Doctor, doctor_id)
-    if not doc:
-        raise HTTPException(status_code=404, detail="Doctor not found")
-    usr = db.get(User, doc.user_id)
-    usr.is_active = False
-    db.add(usr); db.commit()
-    return {"status": "blacklisted"}
-'''
 from sqlalchemy import delete
 from datetime import datetime
 
