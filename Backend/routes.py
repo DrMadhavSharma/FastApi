@@ -374,7 +374,7 @@ def register_doctor(doctor: DoctorCR, db: Session = Depends(get_session)):
         "doctor_id": db_doctor.id
     }
 @app.post("/register/patient")
-def p_register_page(patient:PatientCR,db :Session =Depends(get_session)):
+def register_patient(patient:PatientCR,db :Session =Depends(get_session)):
     enforce_user_limit(db)
     # 1. Check if user with same email exists
     existing_user = db.execute(
@@ -1517,6 +1517,7 @@ def download_system_csv(
         media_type="text/csv",
         filename=f"system_export_{task_id}.csv"
     )
+
 
 
 
