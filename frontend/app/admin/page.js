@@ -46,7 +46,7 @@ export default function AdminPage() {
   }
 
   async function submitPatient(form) {
-    try,{
+    try{
       const path = modal.mode === "add" ? "/admin/patients" : `/admin/patients/${modal.entity.id}`;
     const method = modal.mode === "add" ? "POST" : "PUT";
     await apiFetch(path, { method, body: JSON.stringify(form) });
