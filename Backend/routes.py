@@ -200,7 +200,7 @@ def admin_update_patient(patient_id: int, payload: PatientUpdate, user=Depends(g
     if payload.medical_history is not None: pat.medical_history = payload.medical_history
     db.add_all([usr, pat]); db.commit()
     return {"status": "updated"}
-
+'''
 @app.delete("/admin/patients/{patient_id}")
 def admin_remove_patient(patient_id: int, user=Depends(get_current_user), db: Session = Depends(get_session)):
     require_admin(user)
@@ -211,6 +211,7 @@ def admin_remove_patient(patient_id: int, user=Depends(get_current_user), db: Se
     usr.is_active = False
     db.add(usr); db.commit()
     return {"status": "blacklisted"}
+'''
 @app.post("/register/doctor")
 def register_doctor(doctor: DoctorCR, db: Session = Depends(get_session)):
     enforce_user_limit(db)
@@ -802,42 +803,7 @@ def admin_delete_doctor(
 
     db.commit()
     return {"status": "deleted"}
-    '''
-@app.post("/admin/patients")
-def admin_add_patient(patient: PatientCR, user=Depends(get_current_user), db: Session = Depends(get_session)):
-    require_admin(user)
-    existing_user = db.execute(select(User).where(User.email == patient.email)).scalar_one_or_none()
-    if existing_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
-    db_user = User(
-        username=patient.username,
-        email=patient.email,
-        password=hash_password(patient.password),
-        role=RoleEnum.patient,
-        is_active=True,
-    )
-    db.add(db_user); db.commit(); db.refresh(db_user)
-    db_patient = Patient(user_id=db_user.id, age=patient.age, address=patient.address, medical_history=patient.medical_history)
-    db.add(db_patient); db.commit(); db.refresh(db_patient)
-    return {"id": db_patient.id}
 
-
-@app.put("/admin/patients/{patient_id}")
-def admin_update_patient(patient_id: int, payload: PatientUpdate, user=Depends(get_current_user), db: Session = Depends(get_session)):
-    require_admin(user)
-    pat = db.get(Patient, patient_id)
-    if not pat:
-        raise HTTPException(status_code=404, detail="Patient not found")
-    usr = db.get(User, pat.user_id)
-    if payload.username is not None: usr.username = payload.username
-    if payload.email is not None: usr.email = payload.email
-    if payload.password is not None: usr.password = hash_password(payload.password)
-    if payload.age is not None: pat.age = payload.age
-    if payload.address is not None: pat.address = payload.address
-    if payload.medical_history is not None: pat.medical_history = payload.medical_history
-    db.add_all([usr, pat]); db.commit()
-    return {"status": "updated"}
-'''
 
 @app.delete("/admin/patients/{patient_id}")
 def admin_blacklists_patient(patient_id: int, user=Depends(get_current_user), db: Session = Depends(get_session)):
@@ -1577,6 +1543,7 @@ def download_system_csv(
         media_type="text/csv",
         filename=f"system_export_{task_id}.csv"
     )
+
 
 
 
