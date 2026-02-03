@@ -53,7 +53,7 @@ export default function AdminPage() {
     await Promise.all([loadSummary(), runSearch()]);
     closeModal();
     }catch(err){
-      alert(err.message)
+      alert(err)
     }
     
   }
