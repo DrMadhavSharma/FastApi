@@ -40,7 +40,7 @@ export default function AdminPage() {
   async function submitDoctor(form) {
     const path = modal.mode === "add" ? "/admin/doctors" : `/admin/doctors/${modal.entity.id}`;
     const method = modal.mode === "add" ? "POST" : "PUT";
-    await apiFetch(path, { method, body: JSON.stringify(form) });
+    await apiFetch(path, { method,headers: {"Content-Type" : "application/json"}, body: JSON.stringify(form) });
     await Promise.all([loadSummary(), runSearch()]);
     closeModal();
   }
@@ -49,7 +49,7 @@ export default function AdminPage() {
     try{
       const path = modal.mode === "add" ? "/admin/patients" : `/admin/patients/${modal.entity.id}`;
     const method = modal.mode === "add" ? "POST" : "PUT";
-    await apiFetch(path, { method, body: JSON.stringify(form) });
+    await apiFetch(path, { method,headers: {"Content-Type" : "application/json"}, body: JSON.stringify(form) });
     await Promise.all([loadSummary(), runSearch()]);
     closeModal();
     }catch(err){
