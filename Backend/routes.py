@@ -1184,78 +1184,6 @@ async def trigger_export(request: Request):
     return {"task_id": task_id, "status": "queued"}
 
 ####----------Doctors Monthly Report,runs if we have the appointments scheduled in btw that month --#
-'''
-from datetime import date
-import calendar
-@app.post("/monthly-report")
-def monthly_report_job(session: Session = Depends(get_session)):
-    """Generate monthly report for doctors and email as attachment."""
-
-    today = date.today()
-    start_date = today.replace(day=1)
-    _, last_day = calendar.monthrange(today.year, today.month)
-    end_date = today.replace(day=last_day)
-
-    doctors = session.query(Doctor).all()
-    sent_count = 0
-
-    for doc in doctors:
-        appointments = session.query(Appointment).filter(
-            Appointment.doctor_id == doc.id,
-            Appointment.appointment_date >= start_date,
-            Appointment.appointment_date <= end_date
-        ).all()
-
-        if not appointments:
-            continue
-
-        # 1️⃣ Build HTML report
-        rows = "".join(
-            f"<tr>"
-            f"<td>{a.patient.user.username}</td>"
-            f"<td>{a.appointment_date}</td>"
-            f"<td>{a.notes or ''}</td>"
-            f"</tr>"
-            for a in appointments
-        )
-
-        html_report = f"""
-        <html>
-        <body>
-            <h3>Monthly Activity Report</h3>
-            <table border="1" cellpadding="5">
-                <tr>
-                    <th>Patient</th>
-                    <th>Date</th>
-                    <th>Notes</th>
-                </tr>
-                {rows}
-            </table>
-        </body>
-        </html>
-        """
-
-        # 2️⃣ Save report to FILE (same pattern as CSV)
-        filename = f"monthly_report_doctor_{doc.id}_{today}.html"
-        filepath = os.path.join(CSV_STORAGE_DIR, filename)
-
-        with open(filepath, "w", encoding="utf-8") as f:
-            f.write(html_report)
-
-        # 3️⃣ Send email WITH FILE PATH
-        send_email(
-            to_address=doc.user.email,
-            subject="Monthly Activity Report",
-            message="Please find your monthly activity report attached.",
-            content="html",
-            attachment_file=filepath
-        )
-
-        sent_count += 1
-
-    return {"message": f"Monthly reports sent to {sent_count} doctors"}
-    
-'''
 from fastapi.templating import Jinja2Templates
 
 templates = Jinja2Templates(directory="templates")
@@ -1517,6 +1445,7 @@ def download_system_csv(
         media_type="text/csv",
         filename=f"system_export_{task_id}.csv"
     )
+
 
 
 
