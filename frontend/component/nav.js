@@ -1,18 +1,18 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-const Nav = () => {
+export default function Nav() {
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  // Check login status on load
+  // Check login status on mount
   useEffect(() => {
     const token = localStorage.getItem("access_token");
-    setIsLoggedIn(!!token);
+    setIsLoggedIn(Boolean(token));
   }, []);
 
-  // Handle logout
+  // Logout handler
   const handleLogout = () => {
     localStorage.removeItem("access_token");
     setIsLoggedIn(false);
@@ -20,33 +20,37 @@ const Nav = () => {
   };
 
   return (
-    <div className="nav">
+    <nav className="nav">
       <div className="container nav-inner">
         {/* Brand */}
         <div className="brand">
-          <span className="brand-badge" />
+          <img
+            src="https://fastapi-6mjn.onrender.com/static/logo.png"
+            alt="ArogyaSys Logo"
+            style={{ width: 28, height: 28 }}
+          />
           <span>ArogyaSys</span>
         </div>
 
-        {/* Right side: login/logout button */}
+        {/* Auth action */}
         <div>
           {isLoggedIn ? (
             <button
               onClick={handleLogout}
               className="btn btn-primary"
-              style={{ cursor: "pointer" }}
             >
               Logout
             </button>
           ) : (
-            <a href="https://fastapi-frontend-h1vg.onrender.com/login" className="btn btn-primary">
+            <a
+              href="/login"
+              className="btn btn-primary"
+            >
               Login
             </a>
           )}
         </div>
       </div>
-    </div>
+    </nav>
   );
-};
-
-export default Nav;
+}
