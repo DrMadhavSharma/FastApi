@@ -85,9 +85,9 @@ transition: 200ms ease;
 .nav-link:hover { color: var(--text); background: rgba(255,255,255,0.04); }
 
 .grid-center {
-display: grid;
-place-items: center;
-min-height: calc(100vh - 60px - 56px);
+  display: grid;
+  place-items: center;
+  min-height: 100%;
 }
 
 .field { margin: 12px 0 14px; }
