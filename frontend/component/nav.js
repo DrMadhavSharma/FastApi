@@ -25,7 +25,7 @@ const Nav = () => {
         {/* Brand */}
         <div className="brand">
           <span className="brand-badge" />
-          <span>Hospital App</span>
+          <span>ArogyaSys</span>
         </div>
 
         {/* Right side: login/logout button */}
