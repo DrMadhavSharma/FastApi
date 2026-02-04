@@ -1,29 +1,39 @@
 :root {
-  --bg: #0b1020;
-  --bg-soft: #111936;
-  --card: #0e142b;
-  --text: #e6e8f0;
-  --muted: #9aa3b2;
-  --primary: #6d8cff;
-  --primary-600: #5476ff;
-  --primary-700: #365cff;
-  --ring: rgba(109, 140, 255, 0.5);
-  --success: #22c55e;
-  --danger: #ef4444;
-  --warning: #f59e0b;
+  --bg: #05060b;              /* true near-black */
+  --bg-soft: #0b0d17;
+  --card: #0f1222;
+
+  --text: #f4f6ff;
+  --muted: #8b90a8;
+
+  --primary: #5b7cff;
+  --primary-700: #3f5bff;
+
+  --accent: #8b5cf6;          /* secondary glow ONLY when needed */
+
+  --ring: rgba(91,124,255,0.45);
+
+  --success: #2dd4bf;
+  --danger: #ff4d4f;
+  --warning: #fbbf24;
 }
 
 * { box-sizing: border-box; }
 html, body { height: 100%; }
 body {
-  margin: 0;
-  color: var(--text);
-  background:
-    radial-gradient(1200px 600px at 80% -10%, rgba(109, 140, 255, 0.15), transparent 60%),
-    radial-gradient(1000px 500px at -10% 10%, rgba(54, 92, 255, 0.12), transparent 60%),
-    linear-gradient(180deg, #0b1020 0%, #0a0f1f 100%);
-  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-  line-height: 1.5;
+  font-family: "Inter", ui-sans-serif, system-ui;
+  letter-spacing: -0.01em;
+}
+
+.hero-title {
+  font-size: 42px;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+}
+
+h1, h2 {
+  font-weight: 700;
 }
 
 a { color: inherit; text-decoration: none; }
@@ -101,14 +111,13 @@ a { color: inherit; text-decoration: none; }
 .field { margin: 12px 0 14px; }
 .label { display: block; font-size: 14px; color: var(--muted); margin-bottom: 6px; }
 .input, .select, .textarea {
-  width: 100%;
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(9, 14, 31, 0.8);
-  color: var(--text);
-  outline: none;
-  transition: 160ms ease;
+  background: rgba(5,6,11,0.8);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+
+.input:focus {
+  border-color: var(--primary);
+  background: rgba(5,6,11,0.95);
 }
 .textarea { min-height: 92px; resize: vertical; }
 .input:focus, .select:focus, .textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 4px var(--ring); }
@@ -124,9 +133,20 @@ a { color: inherit; text-decoration: none; }
   transition: 180ms ease;
 }
 .btn-primary {
-  color: white;
-  background: linear-gradient(180deg, var(--primary) 0%, var(--primary-700) 100%);
-  box-shadow: 0 8px 18px rgba(109,140,255,0.35), 0 0 0 1px rgba(255,255,255,0.06) inset;
+  background: linear-gradient(
+    180deg,
+    var(--primary),
+    var(--primary-700)
+  );
+  box-shadow:
+    0 12px 30px rgba(91,124,255,0.45),
+    inset 0 1px 0 rgba(255,255,255,0.2);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 18px 40px rgba(91,124,255,0.6);
 }
 .btn-primary:hover { transform: translateY(-1px); filter: brightness(1.03); }
 .btn-ghost { color: var(--muted); background: transparent; }
@@ -151,11 +171,8 @@ a { color: inherit; text-decoration: none; }
 .pill.active { color: var(--text); background: rgba(255,255,255,0.08); }
 
 .section {
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 14px;
-  padding: 12px;
-  background: rgba(255,255,255,0.03);
-  margin-bottom: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
 }
 
 /* Auth Split Layout */
@@ -303,15 +320,18 @@ a { color: inherit; text-decoration: none; }
 }
 
 .card {
-  width: 100%;
-  max-width: 480px;
-  min-width: 280px;
-  padding: 20px;
-  border-radius: 12px;
-  background: #1f1f3f;
-  border: 1px solid rgba(255,255,255,0.08);
-  box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-  margin: 40; /* remove any inline margin overrides */
+  background: linear-gradient(
+    180deg,
+    rgba(255,255,255,0.04),
+    rgba(255,255,255,0.01)
+  ), var(--card);
+
+  border: none;
+  border-radius: 18px;
+
+  box-shadow:
+    0 20px 60px rgba(0,0,0,0.65),
+    inset 0 1px 0 rgba(255,255,255,0.04);
 }
 .card h1,
 .card h2,
