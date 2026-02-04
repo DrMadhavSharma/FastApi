@@ -313,7 +313,9 @@ margin-top: 0;
 / Main content grows to fill space /
 .main {
 flex: 1 0 auto; / grow, shrink, auto basis */
-padding: 1rem;
+.main {
+  flex: 1 0 auto;
+  padding: 1rem;
 }
 
 .footer {
