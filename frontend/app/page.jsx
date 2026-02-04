@@ -72,14 +72,14 @@ export default function HomePage() {
       <div className="card" style={{ textAlign: "center" }}>
         {/* Logo */}
         <img
-          src="https://fastapi-6mjn.onrender.com/static/logo-dark.svg"
+          src="https://fastapi-6mjn.onrender.com/static/logo.png"
           alt="Company Logo"
           style={{ width: 56, height: 56, marginBottom: 16 }}
         />
 
         <h1>Welcome</h1>
         <p style={{ color: "var(--muted)", marginBottom: 16 }}>
-          Your backend is live and responding.
+          
         </p>
 
         <div className="section">
