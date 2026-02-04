@@ -4,7 +4,7 @@ import React from "react";
 export default function Footer() {
   return (
     <footer className="footer">
-      <div className="footer-inner container">
+      <div className="footer-inner">
         {/* Brand */}
         <div className="brand">
           <img
