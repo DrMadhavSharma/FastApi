@@ -1,14 +1,18 @@
 "use client";
 import React from "react";
 
-const Footer = () => {
+export default function Footer() {
   return (
     <footer className="footer">
       <div className="footer-inner container">
-        {/* Brand with glow */}
+        {/* Brand */}
         <div className="brand">
-          <span className="brand-badge glow" />
-          <span>Hospital App</span>
+          <img
+            src="https://fastapi-6mjn.onrender.com/static/logo.png"
+            alt="ArogyaSys Logo"
+            style={{ width: 20, height: 20 }}
+          />
+          <span>ArogyaSys</span>
         </div>
 
         {/* Footer Links */}
@@ -19,26 +23,24 @@ const Footer = () => {
           <a href="/privacy">Privacy</a>
         </div>
 
-        {/* Social Icons */}
+        {/* Social Links (text-safe, professional) */}
         <div className="social-icons">
           <a href="https://twitter.com" target="_blank" rel="noreferrer">
-            🐦
+            Twitter
           </a>
           <a href="https://facebook.com" target="_blank" rel="noreferrer">
-            📘
+            Facebook
           </a>
           <a href="https://instagram.com" target="_blank" rel="noreferrer">
-            📸
+            Instagram
           </a>
         </div>
 
         {/* Copyright */}
         <div className="copyright">
-          &copy; {new Date().getFullYear()} Hospital App. All rights reserved.
+          © {new Date().getFullYear()} ArogyaSys. All rights reserved.
         </div>
       </div>
     </footer>
   );
-};
-
-export default Footer;
+}
