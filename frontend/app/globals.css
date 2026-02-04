@@ -87,7 +87,7 @@ transition: 200ms ease;
 .grid-center {
   display: grid;
   place-items: center;
-  min-height: 100%;
+  flex: 1;
 }
 
 .field { margin: 12px 0 14px; }
@@ -308,8 +308,8 @@ margin: 40px; /* remove any inline margin overrides */
 
 
 .main {
-  flex: 1 0 auto;
-  padding: 1rem;
+  flex: 1;
+  display: flex;
 }
 
 .footer {
