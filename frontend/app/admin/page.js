@@ -166,14 +166,20 @@ async function deleteEntity(kind, id) {
     <div className="container" style={{ paddingTop: 20 }}>
       <h1>Admin Dashboard</h1>
       {error ? <p className="error">{error}</p> : null}
-      <button className="btn btn-primary" disabled={exporting} onClick={exportSystemCsv}>
-      {exporting ? "Exporting..." : "Export System CSV" && 
-        (<div className="export-toast">
-              <div className="spinner" />
-              <span>Exporting system CSV…</span>
-         </div>
-         )}
-      </button>
+      <button
+  className="btn btn-primary"
+  onClick={exportSystemCsv}
+  disabled={exporting}
+>
+  {exporting ? "Exporting..." : "Export System CSV"}
+</button>
+
+{exporting && (
+  <div className="export-toast">
+    <div className="spinner" />
+    <span>Exporting system CSV…</span>
+  </div>
+)}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 12, margin: "12px 0" }}>
         <div className="section"><strong>Doctors</strong><div style={{ fontSize: 24 }}>{summary.doctors}</div></div>
         <div className="section"><strong>Patients</strong><div style={{ fontSize: 24 }}>{summary.patients}</div></div>
