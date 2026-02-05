@@ -522,12 +522,13 @@ li:hover {
 
 
 /* ---------- Role Accents ---------- */
-li:has(button:contains("doctor")) {
+/* ---------- Role Accents (SAFE) ---------- */
+.row-doctor {
   border-left: 3px solid var(--primary);
 }
 
-li:has(button:contains("patient")) {
-  border-left: 3px solid #22c55e;
+.row-patient {
+  border-left: 3px solid var(--success);
 }
 
 
