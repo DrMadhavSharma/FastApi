@@ -314,12 +314,12 @@ function Modal({ title, children, onClose }) {
   );
 }
 useEffect(() => {
-  function onKey(e) {
-    if (e.key === "Escape") onClose();
-  }
+  const onKey = (e) => {
+    if (e.key === "Escape") closeModal();
+  };
   document.addEventListener("keydown", onKey);
   return () => document.removeEventListener("keydown", onKey);
-}, [onClose]);
+}, []);
 function DoctorForm({ mode, entity, onSubmit, onCancel }) {
   const [form, setForm] = useState({
     username: entity?.username || "",
