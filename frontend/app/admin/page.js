@@ -313,13 +313,7 @@ function Modal({ title, children, onClose }) {
     </div>
   );
 }
-useEffect(() => {
-  const onKey = (e) => {
-    if (e.key === "Escape") closeModal();
-  };
-  document.addEventListener("keydown", onKey);
-  return () => document.removeEventListener("keydown", onKey);
-}, []);
+
 function DoctorForm({ mode, entity, onSubmit, onCancel }) {
   const [form, setForm] = useState({
     username: entity?.username || "",
