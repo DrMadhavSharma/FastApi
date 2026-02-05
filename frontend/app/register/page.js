@@ -9,12 +9,12 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  // Patient
+  // Patient fields
   const [age, setAge] = useState("");
   const [medicalHistory, setMedicalHistory] = useState("");
   const [address, setAddress] = useState("");
 
-  // Doctor
+  // Doctor fields
   const [specialization, setSpecialization] = useState("");
   const [bio, setBio] = useState("");
   const [availability, setAvailability] = useState("");
@@ -25,7 +25,6 @@ export default function RegisterPage() {
   const [redirectIn, setRedirectIn] = useState(3);
 
   /* ---------- Password rules ---------- */
-
   const rules = {
     length: password.length >= 6,
     upper: /[A-Z]/.test(password),
@@ -41,15 +40,11 @@ export default function RegisterPage() {
   const isValidRole =
     role === "patient" || specialization.trim().length > 0;
 
-  /* ---------- Redirect countdown ---------- */
-
+  /* ---------- Redirect after success ---------- */
   useEffect(() => {
     if (!success) return;
 
-    const t = setInterval(() => {
-      setRedirectIn(v => v - 1);
-    }, 1000);
-
+    const t = setInterval(() => setRedirectIn(v => v - 1), 1000);
     const nav = setTimeout(() => {
       window.location.href = "/login";
     }, 3000);
@@ -61,7 +56,6 @@ export default function RegisterPage() {
   }, [success]);
 
   /* ---------- Submit ---------- */
-
   async function handleSubmit(e) {
     e.preventDefault();
     if (!isValidBase || !isValidRole) return;
@@ -123,7 +117,7 @@ export default function RegisterPage() {
           <div className="export-box success">
             <h3>🎉 Registration Successful</h3>
             <p>Please check your email before login.</p>
-            <p>Redirecting to login in <strong>{redirectIn}</strong>…</p>
+            <p>Redirecting in <strong>{redirectIn}</strong> seconds…</p>
           </div>
         </div>
       )}
@@ -133,15 +127,22 @@ export default function RegisterPage() {
 
         {/* ROLE SWITCH */}
         <div className="role-switch" style={{ marginBottom: 14 }}>
-          <div className={`pill ${role === "patient" ? "active" : ""}`} onClick={() => setRole("patient")}>
+          <div
+            className={`pill ${role === "patient" ? "active" : ""}`}
+            onClick={() => setRole("patient")}
+          >
             Patient
           </div>
-          <div className={`pill ${role === "doctor" ? "active" : ""}`} onClick={() => setRole("doctor")}>
+          <div
+            className={`pill ${role === "doctor" ? "active" : ""}`}
+            onClick={() => setRole("doctor")}
+          >
             Doctor
           </div>
         </div>
 
         <form onSubmit={handleSubmit}>
+          {/* BASE FIELDS */}
           <div className="wire-field">
             <label className="wire-label">Username</label>
             <input className="wire-input" value={username} onChange={e => setUsername(e.target.value)} />
@@ -173,7 +174,6 @@ export default function RegisterPage() {
               </button>
             </div>
 
-            {/* RULE CHECKLIST */}
             <ul className="bullets">
               <li style={{ color: rules.length ? "var(--success)" : "var(--muted)" }}>✔ At least 6 characters</li>
               <li style={{ color: rules.upper ? "var(--success)" : "var(--muted)" }}>✔ One uppercase letter</li>
@@ -182,8 +182,27 @@ export default function RegisterPage() {
             </ul>
           </div>
 
-          {/* ROLE DETAILS */}
-          {role === "doctor" && (
+          {/* ROLE-SPECIFIC FIELDS */}
+          {role === "patient" ? (
+            <div className="section">
+              <h3>Patient Details</h3>
+
+              <div className="wire-field">
+                <label className="wire-label">Age</label>
+                <input className="wire-input" type="number" value={age} onChange={e => setAge(e.target.value)} />
+              </div>
+
+              <div className="wire-field">
+                <label className="wire-label">Medical History</label>
+                <textarea className="wire-input" value={medicalHistory} onChange={e => setMedicalHistory(e.target.value)} />
+              </div>
+
+              <div className="wire-field">
+                <label className="wire-label">Address</label>
+                <input className="wire-input" value={address} onChange={e => setAddress(e.target.value)} />
+              </div>
+            </div>
+          ) : (
             <div className="section">
               <h3>Doctor Details</h3>
 
@@ -223,4 +242,4 @@ export default function RegisterPage() {
       </div>
     </div>
   );
-            }
+                  }
