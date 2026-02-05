@@ -21,6 +21,9 @@ height: 100%;
 
 
 body {
+min-height: 100svh;
+display: flex;
+flex-direction: column;
 margin: 0;
 color: var(--text);
 
@@ -87,7 +90,7 @@ transition: 200ms ease;
 .grid-center {
   display: grid;
   place-items: center;
-  flex: 1;
+  min-height: calc(100svh - 60px);
 }
 
 .field { margin: 12px 0 14px; }
@@ -320,6 +323,7 @@ text-align: center;
 border-top: 1px solid rgba(255,255,255,0.06);
 flex-shrink: 0;
 backdrop-filter: saturate(1.2) blur(8px);
+margin-top: auto;
 }
 
 .footer-inner {
