@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../lib/api";
-
+import { useRef } from "react";
 export default function AdminPage() {
   const [summary, setSummary] = useState({ doctors: 0, patients: 0, appointments: 0 });
   const [query, setquery] = useState("");
@@ -11,7 +11,10 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [modal, setModal] = useState({ open: false, kind: null, mode: null, entity: null });
-
+  const [exportStatus, setExportStatus] = useState("");
+  const [exportSuccess, setExportSuccess] = useState(false);
+  const exportIntervalRef = useRef(null);
+  
   async function loadSummary() {
     const data = await apiFetch("/admin/summary");
     setSummary(data);
@@ -136,23 +139,42 @@ async function deleteEntity(kind, id) {
   
   function pollForCsv(taskId) {
   const token = localStorage.getItem("access_token");
-  const interval = setInterval(async () => {
-    const res = await fetch(`https://fastapi-6mjn.onrender.com/admin/export-system-csv/${taskId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+
+  setExportStatus("Generating CSV…");
+
+  exportIntervalRef.current = setInterval(async () => {
+    const res = await fetch(
+      `https://fastapi-6mjn.onrender.com/admin/export-system-csv/${taskId}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
 
     if (res.ok) {
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
+
       const a = document.createElement("a");
       a.href = url;
       a.download = "system_export.csv";
       a.click();
+
       URL.revokeObjectURL(url);
-      clearInterval(interval);
+      clearInterval(exportIntervalRef.current);
+
+      setExporting(false);
+      setExportStatus("");
+      setExportSuccess(true);
+    } else {
+      setExportStatus("Still processing…");
     }
   }, 3000);
 }
+  function cancelExport() {
+  if (exportIntervalRef.current) {
+    clearInterval(exportIntervalRef.current);
+  }
+  setExporting(false);
+  setExportStatus("");
+  }
   const upcoming = useMemo(() => {
     const now = new Date();
     return appointments.filter(a => new Date(a.appointment_date) > now);
@@ -176,8 +198,31 @@ async function deleteEntity(kind, id) {
 
 {exporting && (
   <div className="export-toast">
-    <div className="spinner" />
-    <span>Exporting system CSV…</span>
+    <div className="export-box">
+      <div className="spinner" />
+      <div className="export-text">
+        <strong>Export in progress</strong>
+        <span>{exportStatus || "Preparing CSV file…"}</span>
+      </div>
+
+      <div className="export-actions">
+        <button className="btn btn-ghost" onClick={cancelExport}>
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+{exportSuccess && (
+  <div className="export-toast">
+    <div className="export-box success">
+      <strong>✅ Export completed</strong>
+      <span>Your CSV has been downloaded.</span>
+      <button className="btn btn-primary" onClick={() => setExportSuccess(false)}>
+        Close
+      </button>
+    </div>
   </div>
 )}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 12, margin: "12px 0" }}>
