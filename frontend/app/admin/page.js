@@ -221,7 +221,7 @@ async function deleteEntity(kind, id) {
             <ul>
               {search.patients.map(p => (
                 <li key={p.id} className="row-patient" style={{ marginBottom: 6 }}> 
-                 <div className="row"> style={{ marginBottom: 6 }}>
+                 <div className="row"> 
                     <span>#{p.id} • user:{p.user_id} • age:{p.age ?? "-"}</span>
                      <div className="row-actions">
                        <button className="btn" style={{ marginLeft: 8 }} onClick={() => openModal("patient", "edit", p)}>edit</button>
