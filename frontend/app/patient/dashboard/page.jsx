@@ -87,27 +87,17 @@ async function triggerCsvExport() {
 
   const interval = setInterval(async () => {
     const res = await fetch(
-      `https://fastapi-6mjn.onrender.com/export/patient-csv/${exportTaskId}`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      }
+      `${API_URL}/export/patient-csv/${exportTaskId}`,
+      { headers: { Authorization: `Bearer ${token}` } }
     );
+
+    if (res.status === 202) return; // still processing
 
     if (res.ok) {
       const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "my_health_data.csv";
-      a.click();
-
-      URL.revokeObjectURL(url);
+      download(blob);
       clearInterval(interval);
-
-      setExporting(false);
       setExportTaskId(null);
-      setExportSuccess(true);
     }
   }, 3000);
 
