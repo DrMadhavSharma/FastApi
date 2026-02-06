@@ -15,6 +15,7 @@ export default function PatientDashboard() {
   const [loading, setLoading] = useState(true);
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [patients, setPatients] = useState([]); // Fetch from backend if needed
+  const [exportSuccess, setExportSuccess] = useState(false);
 const {user} = useContext(UserContext)
   const [booking, setBooking] = useState({
     doctor_id: "",
@@ -312,33 +313,37 @@ async function triggerCsvExport() {
           </table>
         )}
       </div>
-      <button
-        className="btn btn-primary"
-        disabled={exporting}
-        onClick={async () => {
-          setExporting(true);
-          await triggerCsvExport(selectedPatient, patients.find(p => p.id === selectedPatient)?.email);
-          setExporting(false);
-        }}
-      >
-        {exporting && (
+      {/* EXPORT BUTTON */}
+<button
+  className="btn btn-primary"
+  disabled={exporting}
+  onClick={triggerCsvExport}
+>
+  {exporting ? "Exporting..." : "Export CSV"}
+</button>
+
+{/* CENTER LOADING OVERLAY */}
+{exporting && (
   <div className="loading-overlay">
     <div className="spinner" />
   </div>
 )}
 
+{/* SUCCESS POPUP (CENTERED) */}
 {exportSuccess && (
   <div className="export-toast">
     <div className="export-box success">
       <h3>📄 CSV Downloaded</h3>
       <p>Your health data has been downloaded successfully.</p>
-      <button className="btn btn-primary" onClick={() => setExportSuccess(false)}>
+      <button
+        className="btn btn-primary"
+        onClick={() => setExportSuccess(false)}
+      >
         Close
       </button>
     </div>
   </div>
 )}
-      </button>
       {/* Booking form */}
       <div className="section-container">
         <div className="card">
