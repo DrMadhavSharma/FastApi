@@ -1199,7 +1199,34 @@ async def trigger_export(request: Request):
         }
 
     return {"task_id": task_id, "status": "queued"}
+########-------polling/download by frontend----#
+@app.get("/export/patient-csv/{task_id}")
+def download_patient_csv(
+    task_id: str,
+    user=Depends(get_current_user)
+):
+    result = task_results.get(task_id)
 
+    if not result:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    if result["status"] == "pending":
+        return Response(status_code=202)
+
+    if result["status"] == "failed":
+        raise HTTPException(status_code=500, detail="Export failed")
+
+    filename = result["filename"]
+    path = os.path.join(CSV_STORAGE_DIR, filename)
+
+    if not os.path.exists(path):
+        raise HTTPException(status_code=404, detail="File missing")
+
+    return FileResponse(
+        path,
+        media_type="text/csv",
+        filename=filename
+    )
 ####----------Doctors Monthly Report,runs if we have the appointments scheduled in btw that month --#
 from fastapi.templating import Jinja2Templates
 
@@ -1462,6 +1489,7 @@ def download_system_csv(
         media_type="text/csv",
         filename=f"system_export_{task_id}.csv"
     )
+
 
 
 
