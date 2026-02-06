@@ -617,16 +617,27 @@ def list_doctors(db: Session = Depends(get_session)):
     doctors = db.query(Doctor).all()
     result = []
 
+    DEFAULT_AVAILABILITY = [
+        {"day": "Monday", "from": "09:00", "to": "17:00"},
+        {"day": "Tuesday", "from": "09:00", "to": "17:00"},
+        {"day": "Wednesday", "from": "09:00", "to": "17:00"},
+        {"day": "Thursday", "from": "09:00", "to": "17:00"},
+        {"day": "Friday", "from": "09:00", "to": "17:00"},
+    ]
+
     for d in doctors:
         if not d.user:
             continue
 
-        availability = []
+        # Availability logic: use DB value if valid, else default Mon–Fri 9–5
+        availability = DEFAULT_AVAILABILITY
         if d.availability and d.availability.strip():
             try:
-                availability = json.loads(d.availability)
+                parsed = json.loads(d.availability)
+                if parsed:
+                    availability = parsed
             except json.JSONDecodeError:
-                availability = []  # fallback (or log)
+                availability = DEFAULT_AVAILABILITY
 
         result.append({
             "id": d.id,
@@ -1451,6 +1462,7 @@ def download_system_csv(
         media_type="text/csv",
         filename=f"system_export_{task_id}.csv"
     )
+
 
 
 
