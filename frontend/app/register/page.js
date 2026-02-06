@@ -32,36 +32,53 @@ export default function RegisterPage() {
     special: /[^A-Za-z0-9]/.test(password),
   };
 
-  const isValidBase =
-    username.trim().length >= 2 &&
-    email.includes("@") &&
-    rules.length;
-
-  const isValidRole =
-    role === "patient" || specialization.trim().length > 0;
+  const isPasswordValid = Object.values(rules).every(Boolean);
 
   /* ---------- Redirect after success ---------- */
   useEffect(() => {
     if (!success) return;
 
-    const t = setInterval(() => setRedirectIn(v => v - 1), 1000);
-    const nav = setTimeout(() => {
+    const interval = setInterval(() => {
+      setRedirectIn(v => v - 1);
+    }, 1000);
+
+    const timeout = setTimeout(() => {
       window.location.href = "/login";
     }, 3000);
 
     return () => {
-      clearInterval(t);
-      clearTimeout(nav);
+      clearInterval(interval);
+      clearTimeout(timeout);
     };
   }, [success]);
 
   /* ---------- Submit ---------- */
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!isValidBase || !isValidRole) return;
+    setError("");
+
+    // ---- validations ----
+    if (username.trim().length < 2) {
+      setError("Username must be at least 2 characters.");
+      return;
+    }
+
+    if (!email.includes("@")) {
+      setError("Please enter a valid email.");
+      return;
+    }
+
+    if (!isPasswordValid) {
+      setError("Password does not meet security requirements.");
+      return;
+    }
+
+    if (role === "doctor" && !specialization.trim()) {
+      setError("Doctor specialization is required.");
+      return;
+    }
 
     setLoading(true);
-    setError("");
 
     try {
       const endpoint =
@@ -71,20 +88,27 @@ export default function RegisterPage() {
 
       const payload =
         role === "doctor"
-          ? { username, email, password, specialization, bio, availability }
+          ? {
+              username,
+              email,
+              password,
+              specialization,
+              bio,
+              availability,
+            }
           : {
               username,
               email,
               password,
               age: age ? Number(age) : undefined,
               medical_history: medicalHistory,
-              address
+              address,
             };
 
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
@@ -106,18 +130,22 @@ export default function RegisterPage() {
 
   return (
     <div className="wire-center">
+      {/* ---------- Loading overlay ---------- */}
       {loading && (
         <div className="loading-overlay">
           <div className="spinner" />
         </div>
       )}
 
+      {/* ---------- Success popup ---------- */}
       {success && (
         <div className="export-toast">
           <div className="export-box success">
             <h3>🎉 Registration Successful</h3>
             <p>Please check your email before login.</p>
-            <p>Redirecting in <strong>{redirectIn}</strong> seconds…</p>
+            <p>
+              Redirecting in <strong>{redirectIn}</strong> seconds…
+            </p>
           </div>
         </div>
       )}
@@ -125,7 +153,7 @@ export default function RegisterPage() {
       <div className="wire-card">
         <h1 className="wire-title">Create Account</h1>
 
-        {/* ROLE SWITCH */}
+        {/* ---------- Role switch ---------- */}
         <div className="role-switch" style={{ marginBottom: 14 }}>
           <div
             className={`pill ${role === "patient" ? "active" : ""}`}
@@ -142,18 +170,27 @@ export default function RegisterPage() {
         </div>
 
         <form onSubmit={handleSubmit}>
-          {/* BASE FIELDS */}
+          {/* ---------- Base fields ---------- */}
           <div className="wire-field">
             <label className="wire-label">Username</label>
-            <input className="wire-input" value={username} onChange={e => setUsername(e.target.value)} />
+            <input
+              className="wire-input"
+              value={username}
+              onChange={e => setUsername(e.target.value)}
+            />
           </div>
 
           <div className="wire-field">
             <label className="wire-label">Email</label>
-            <input className="wire-input" type="email" value={email} onChange={e => setEmail(e.target.value)} />
+            <input
+              className="wire-input"
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+            />
           </div>
 
-          {/* PASSWORD */}
+          {/* ---------- Password ---------- */}
           <div className="wire-field">
             <label className="wire-label">Password</label>
 
@@ -175,31 +212,52 @@ export default function RegisterPage() {
             </div>
 
             <ul className="bullets">
-              <li style={{ color: rules.length ? "var(--success)" : "var(--muted)" }}>✔ At least 6 characters</li>
-              <li style={{ color: rules.upper ? "var(--success)" : "var(--muted)" }}>✔ One uppercase letter</li>
-              <li style={{ color: rules.number ? "var(--success)" : "var(--muted)" }}>✔ One number</li>
-              <li style={{ color: rules.special ? "var(--success)" : "var(--muted)" }}>✔ One special character</li>
+              <li style={{ color: rules.length ? "var(--success)" : "var(--muted)" }}>
+                ✔ At least 6 characters
+              </li>
+              <li style={{ color: rules.upper ? "var(--success)" : "var(--muted)" }}>
+                ✔ One uppercase letter
+              </li>
+              <li style={{ color: rules.number ? "var(--success)" : "var(--muted)" }}>
+                ✔ One number
+              </li>
+              <li style={{ color: rules.special ? "var(--success)" : "var(--muted)" }}>
+                ✔ One special character
+              </li>
             </ul>
           </div>
 
-          {/* ROLE-SPECIFIC FIELDS */}
+          {/* ---------- Role-specific ---------- */}
           {role === "patient" ? (
             <div className="section">
               <h3>Patient Details</h3>
 
               <div className="wire-field">
                 <label className="wire-label">Age</label>
-                <input className="wire-input" type="number" value={age} onChange={e => setAge(e.target.value)} />
+                <input
+                  className="wire-input"
+                  type="number"
+                  value={age}
+                  onChange={e => setAge(e.target.value)}
+                />
               </div>
 
               <div className="wire-field">
                 <label className="wire-label">Medical History</label>
-                <textarea className="wire-input" value={medicalHistory} onChange={e => setMedicalHistory(e.target.value)} />
+                <textarea
+                  className="wire-input"
+                  value={medicalHistory}
+                  onChange={e => setMedicalHistory(e.target.value)}
+                />
               </div>
 
               <div className="wire-field">
                 <label className="wire-label">Address</label>
-                <input className="wire-input" value={address} onChange={e => setAddress(e.target.value)} />
+                <input
+                  className="wire-input"
+                  value={address}
+                  onChange={e => setAddress(e.target.value)}
+                />
               </div>
             </div>
           ) : (
@@ -208,17 +266,29 @@ export default function RegisterPage() {
 
               <div className="wire-field">
                 <label className="wire-label">Specialization *</label>
-                <input className="wire-input" value={specialization} onChange={e => setSpecialization(e.target.value)} />
+                <input
+                  className="wire-input"
+                  value={specialization}
+                  onChange={e => setSpecialization(e.target.value)}
+                />
               </div>
 
               <div className="wire-field">
                 <label className="wire-label">Bio</label>
-                <textarea className="wire-input" value={bio} onChange={e => setBio(e.target.value)} />
+                <textarea
+                  className="wire-input"
+                  value={bio}
+                  onChange={e => setBio(e.target.value)}
+                />
               </div>
 
               <div className="wire-field">
                 <label className="wire-label">Availability</label>
-                <input className="wire-input" value={availability} onChange={e => setAvailability(e.target.value)} />
+                <input
+                  className="wire-input"
+                  value={availability}
+                  onChange={e => setAvailability(e.target.value)}
+                />
               </div>
             </div>
           )}
@@ -226,20 +296,19 @@ export default function RegisterPage() {
           {error && <p className="error">{error}</p>}
 
           <div className="wire-actions">
-            <button
-              className="wire-button"
-              type="submit"
-              disabled={loading || !(isValidBase && isValidRole)}
-            >
+            <button className="wire-button" type="submit" disabled={loading}>
               {loading ? "Registering..." : "Register"}
             </button>
 
             <p className="wire-helper">
-              Already have an account? <a className="wire-link" href="/login">Login</a>
+              Already have an account?{" "}
+              <a className="wire-link" href="/login">
+                Login
+              </a>
             </p>
           </div>
         </form>
       </div>
     </div>
   );
-                  }
+            }
