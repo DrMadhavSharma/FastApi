@@ -610,25 +610,31 @@ def search_doctors(q: str = "", db: Session = Depends(get_session)):
     return result
 
 #list of doctors 
+import json
+
 @app.get("/doctors")
 def list_doctors(db: Session = Depends(get_session)):
-    """
-    List all doctors with their profiles (specialization, bio, availability)
-    """
     doctors = db.query(Doctor).all()
     result = []
 
     for d in doctors:
-        # skip doctor if no associated user
         if not d.user:
             continue
+
+        availability = []
+        if d.availability and d.availability.strip():
+            try:
+                availability = json.loads(d.availability)
+            except json.JSONDecodeError:
+                availability = []  # fallback (or log)
+
         result.append({
             "id": d.id,
             "username": d.user.username,
             "email": d.user.email,
             "specialization": d.specialization,
             "bio": d.bio,
-            "availability": json.loads(d.availability) if d.availability else []
+            "availability": availability
         })
 
     return result
@@ -1445,6 +1451,7 @@ def download_system_csv(
         media_type="text/csv",
         filename=f"system_export_{task_id}.csv"
     )
+
 
 
 
