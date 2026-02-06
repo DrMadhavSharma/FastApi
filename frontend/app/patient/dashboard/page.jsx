@@ -79,6 +79,40 @@ async function triggerCsvExport() {
     setExporting(false);
   }
 }
+  useEffect(() => {
+  if (!exportTaskId) return;
+
+  const token = localStorage.getItem("access_token");
+
+  const interval = setInterval(async () => {
+    const res = await fetch(
+      `https://fastapi-6mjn.onrender.com/export/patient-csv/${exportTaskId}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+
+    if (res.ok) {
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "my_health_data.csv";
+      a.click();
+
+      URL.revokeObjectURL(url);
+      clearInterval(interval);
+
+      setExporting(false);
+      setExportTaskId(null);
+      setExportSuccess(true);
+    }
+  }, 3000);
+
+  return () => clearInterval(interval);
+}, [exportTaskId]);
+  
   // Fetch appointments and doctors
   useEffect(() => {
     
@@ -234,39 +268,7 @@ async function triggerCsvExport() {
       </div>
     );
   }
-useEffect(() => {
-  if (!exportTaskId) return;
 
-  const token = localStorage.getItem("access_token");
-
-  const interval = setInterval(async () => {
-    const res = await fetch(
-      `https://fastapi-6mjn.onrender.com/export/patient-csv/${exportTaskId}`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      }
-    );
-
-    if (res.ok) {
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "my_health_data.csv";
-      a.click();
-
-      URL.revokeObjectURL(url);
-      clearInterval(interval);
-
-      setExporting(false);
-      setExportTaskId(null);
-      setExportSuccess(true);
-    }
-  }, 3000);
-
-  return () => clearInterval(interval);
-}, [exportTaskId]);
 
   return (
     <div className="main container">
