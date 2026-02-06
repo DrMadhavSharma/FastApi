@@ -105,9 +105,10 @@ async function triggerCsvExport() {
 
     if (res.ok) {
       const blob = await res.blob();
-      download(blob);
+      downloadBlob(blob, "my_health_data.csv");
       clearInterval(interval);
       setExportTaskId(null);
+      setExportSuccess(true);
     }
   }, 3000);
 
