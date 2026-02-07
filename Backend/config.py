@@ -24,16 +24,28 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
     return encoded_jwt
 
 
+from jose import JWTError, jwt, ExpiredSignatureError
+
 def verify_token(token: str):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+
         username = payload.get("sub")
-        email = payload.get("email")
-        roles = payload.get("roles", [])
         if username is None:
             return None
-        return {"username": username, "email": email, "roles": roles}
-    except JWTError:
+
+        return {
+            "username": username,
+            "email": payload.get("email"),
+            "roles": payload.get("roles", [])
+        }
+
+    except ExpiredSignatureError:
+        print("❌ Token expired")
+        return None
+
+    except JWTError as e:
+        print("❌ Invalid token:", e)
         return None
 
 def get_current_user(token: str = Depends(oauth2_scheme)):
@@ -46,4 +58,5 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
         return user
     except Exception as e:
         print("Token verification error:", e)
+
         raise HTTPException(status_code=401, detail="Token verification failed")
