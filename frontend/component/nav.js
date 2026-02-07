@@ -1,18 +1,43 @@
 "use client";
+
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 
 export default function Nav() {
   const router = useRouter();
+  const pathname = usePathname();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  // Check login status on mount
-  useEffect(() => {
+  const checkAuth = async () => {
     const token = localStorage.getItem("access_token");
-    setIsLoggedIn(Boolean(token));
-  }, []);
 
-  // Logout handler
+    if (!token) {
+      setIsLoggedIn(false);
+      return;
+    }
+
+    try {
+      const res = await fetch("https://fastapi-6mjn.onrender.com/me", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) throw new Error("Invalid token");
+
+      setIsLoggedIn(true);
+    } catch {
+      // Token expired or invalid
+      localStorage.removeItem("access_token");
+      setIsLoggedIn(false);
+    }
+  };
+
+  // Run on mount & every route change
+  useEffect(() => {
+    checkAuth();
+  }, [pathname]);
+
   const handleLogout = () => {
     localStorage.removeItem("access_token");
     setIsLoggedIn(false);
@@ -35,19 +60,16 @@ export default function Nav() {
         {/* Auth action */}
         <div>
           {isLoggedIn ? (
-            <button
-              onClick={handleLogout}
-              className="btn btn-primary"
-            >
+            <button onClick={handleLogout} className="btn btn-primary">
               Logout
             </button>
           ) : (
-            <a
-              href="/login"
+            <button
+              onClick={() => router.push("/login")}
               className="btn btn-primary"
             >
               Login
-            </a>
+            </button>
           )}
         </div>
       </div>
