@@ -54,7 +54,9 @@ def authenticate_user(db: Session,email: str, password: str):
         if not verify_password(password, db_user.password):
             return None
         return db_user
-
+@app.get("/me")
+def me(current_user: dict = Depends(get_current_user)):
+    return current_user
 @app.get("/")
 def index_page():
     return {"message": "Welcome to the Hospital Management Application!"}
@@ -1489,6 +1491,7 @@ def download_system_csv(
         media_type="text/csv",
         filename=f"system_export_{task_id}.csv"
     )
+
 
 
 
