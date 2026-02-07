@@ -2,10 +2,13 @@
 
 import { useContext, useEffect, useState } from "react";
 import { UserContext } from "../../context/UserContext";
+import { useRef } from "react";
 
 
 export default function PatientDashboard() {
   // const [user, setUser] = useState({ name: "Patient" });
+  const exportIntervalRef = useRef(null);
+  const [exportStatus, setExportStatus] = useState("");
   const [exportTaskId, setExportTaskId] = useState(null);
   const [appointments, setAppointments] = useState([]);
   const [doctors, setDoctors] = useState([]);
@@ -86,33 +89,39 @@ async function triggerCsvExport() {
   } catch (err) {
     console.error(err);
     alert(err.message);
-  } finally {
     setExporting(false);
-  }
+  } 
 }
   useEffect(() => {
   if (!exportTaskId) return;
 
   const token = localStorage.getItem("access_token");
+  setExportStatus("Generating CSV…");
 
-  const interval = setInterval(async () => {
+  exportIntervalRef.current = setInterval(async () => {
     const res = await fetch(
       `${API_URL}/export/patient-csv/${exportTaskId}`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
 
-    if (res.status === 202) return; // still processing
+    if (res.status === 202) {
+      setExportStatus("Still processing…");
+      return;
+    }
 
     if (res.ok) {
       const blob = await res.blob();
       downloadBlob(blob, "my_health_data.csv");
-      clearInterval(interval);
+
+      clearInterval(exportIntervalRef.current);
       setExportTaskId(null);
+      setExporting(false);
+      setExportStatus("");
       setExportSuccess(true);
     }
   }, 3000);
 
-  return () => clearInterval(interval);
+  return () => clearInterval(exportIntervalRef.current);
 }, [exportTaskId]);
   
   // Fetch appointments and doctors
@@ -323,19 +332,23 @@ async function triggerCsvExport() {
   {exporting ? "Exporting..." : "Export CSV"}
 </button>
 
-{/* CENTER LOADING OVERLAY */}
 {exporting && (
-  <div className="loading-overlay">
-    <div className="spinner" />
+  <div className="export-toast">
+    <div className="export-box">
+      <div className="spinner" />
+      <div className="export-text">
+        <strong>Export in progress</strong>
+        <span>{exportStatus || "Preparing CSV file…"}</span>
+      </div>
+    </div>
   </div>
 )}
 
-{/* SUCCESS POPUP (CENTERED) */}
 {exportSuccess && (
   <div className="export-toast">
     <div className="export-box success">
-      <h3>📄 CSV Downloaded</h3>
-      <p>Your health data has been downloaded successfully.</p>
+      <strong>✅ Export completed</strong>
+      <span>Your CSV has been downloaded.</span>
       <button
         className="btn btn-primary"
         onClick={() => setExportSuccess(false)}
