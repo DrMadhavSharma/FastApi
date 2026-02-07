@@ -348,7 +348,7 @@ async function triggerCsvExport() {
   <div className="export-toast">
     <div className="export-box success">
       <strong>✅ Export completed</strong>
-      <span>Your CSV has been downloaded.</span>
+      <span>Your CSV has been downloaded and e-mailed.</span>
       <button
         className="btn btn-primary"
         onClick={() => setExportSuccess(false)}
